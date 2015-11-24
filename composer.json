@@ -1,0 +1,11 @@
+{
+	"name": "infrajs/excel",
+	"description": "Parser xlsx",
+	"license": "GPL3",
+	"autoload": {
+		"psr-4": { "infrajs\\excel\\": "/" }
+	},
+	"require":{
+		"infrajs/infra":"~1"
+	}
+}
