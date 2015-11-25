@@ -1,5 +1,5 @@
 <?php
-namespace itlife\files;
+namespace infrajs\excel;
 
 /*
 * xls методы для работы с xls документами. 
