@@ -1,6 +1,6 @@
 <?php
 namespace infrajs\excel;
-
+use infrajs\hash\Hash;
 /*
 * xls методы для работы с xls документами. 
 *
@@ -100,7 +100,7 @@ function &xls_parseAll($path)
 		} elseif ($in['ext'] == 'xlsx') {
 			$dirs = infra_dirs();
 			$cacheFolder = $dirs['cache'].'xlsx/';
-			$cacheFolder .= infra_hash($path).'/';//кэш
+			$cacheFolder .= Hash::make($path).'/';//кэш
 			infra_cache_fullrmdir($cacheFolder);//удалить старый кэш
 
 			//разархивировать
