@@ -1,6 +1,7 @@
 <?php
+namespace infrajs\autoedit;
+use infrajs\path\Path;
+require_once(__DIR__.'/../../../vendor/autoload.php');
+require_once(__DIR__.'/../path/install.php');
 
-$dirs = infra_dirs();
-if (!is_dir($dirs['cache'].'xlsx/')) {
-	mkdir($dirs['cache'].'xlsx/');
-}
+Path::mkdir($dirs['cache'].'.xlsx/');

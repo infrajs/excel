@@ -624,7 +624,7 @@ function xls_processGroupFilter(&$data)
 
 	$all = array();
 	xls_runGroups($data, function (&$gr) use (&$all) {
-		$title = infra_strtolower($gr['title']);
+		$title = mb_strtolower($gr['title']);
 		//echo $title.'<br>';
 		if (!isset($all[$title])) {
 			$all[$title] = array('orig' => &$gr, 'list' => array());
@@ -945,7 +945,7 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 
 		$d = explode('/', $p);
 		$name = array_pop($d);
-		$n = infra_strtolower($name);
+		$n = mb_strtolower($name);
 		$fd = infra_nameinfo($n);
 		$ext = $fd['ext'];
 
@@ -1330,7 +1330,7 @@ class Xlsx
 
 			$d = explode('/', $p);
 			$name = array_pop($d);
-			$n = infra_strtolower($name);
+			$n = mb_strtolower($name);
 			$fd = infra_nameinfo($n);
 			$ext = $fd['ext'];
 
