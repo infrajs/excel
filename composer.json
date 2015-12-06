@@ -6,7 +6,6 @@
 		"psr-4": { "infrajs\\excel\\": "/" }
 	},
 	"require":{
-		"infrajs/infra":"~1",
 		"infrajs/path":"~1"
 	}
 }
