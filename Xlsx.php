@@ -1,6 +1,9 @@
 <?php
 namespace infrajs\excel;
 use infrajs\hash\Hash;
+use infrajs\path\Path;
+use infrajs\load\Load;
+use infrajs\controller\Each;
 /*
 * xls методы для работы с xls документами. 
 *
@@ -9,7 +12,7 @@ use infrajs\hash\Hash;
 *
 * **Подключение**
 
-	infra_require('*files/xls.php');
+	Path::req('*files/xls.php');
 
 * **Использование**
 
@@ -33,7 +36,6 @@ use infrajs\hash\Hash;
 	$data=xls_init(path,conf)
 */
 
-infra_require('*infra/ext/seq.php');
 
 /*var pathlib=require('path');
 var util=require('util');
@@ -48,9 +50,9 @@ function &xls_parseTable($path, $list)
 }
 function &xls_parseAll($path)
 {
-	$data = infra_cache(array($path), 'xls_parseAll', function &($path) {
+	$data = Cache::exec(array($path), 'xls_parseAll', function &($path) {
 
-		$file = infra_theme($path);
+		$file = Path::theme($path);
 
 		
 		$data = array();
@@ -58,7 +60,7 @@ function &xls_parseAll($path)
 			return $data;
 		}
 
-		$in = infra_srcinfo($path);
+		$in = Load::srcInfo($path);
 
 		
 		if ($in['ext'] == 'xls') {
@@ -73,7 +75,7 @@ function &xls_parseAll($path)
 			$d->setOutputEncoding('utf-8');
 			$d->read($file);
 
-			infra_forr($d->boundsheets, function &($v, $k) use (&$d, &$data) {
+			Each::forr($d->boundsheets, function &($v, $k) use (&$d, &$data) {
 				$data[$v['name']] = &$d->sheets[$k]['cells'];
 				$r = null;
 
@@ -81,7 +83,7 @@ function &xls_parseAll($path)
 			});
 		} elseif ($in['ext'] == 'csv') {
 			$handle = fopen('php://memory', 'w+');
-			fwrite($handle, infra_toutf(file_get_contents($file)));
+			fwrite($handle, Path::toutf(file_get_contents($file)));
 			rewind($handle);
 			$data = array(); //Массив будет хранить данные из csv
 			while (($line = fgetcsv($handle, 0, ";")) !== false) { //Проходим весь csv-файл, и читаем построчно. 3-ий параметр разделитель поля
@@ -105,7 +107,7 @@ function &xls_parseAll($path)
 
 			//разархивировать
 			$zip = new \ZipArchive();
-			if ($zip->open(infra_theme($path))) {
+			if ($zip->open(Path::theme($path))) {
 				mkdir($cacheFolder);
 				$zip->extractTo($cacheFolder);
 				$zip->close();
@@ -225,7 +227,7 @@ function &xls_parse($path, $list = false)
 {
 	$data = &xls_parseAll($path);
 	if (!$list) {
-		$list = infra_foro($data, function (&$v, $k) {
+		$list = Each::foro($data, function (&$v, $k) {
 			return $k;
 		});
 	}
@@ -239,9 +241,9 @@ function &xls_make($path)
 	if (!$datamain) {
 		return;
 	}
-	$p = infra_srcinfo($path);
+	$p = Load::srcInfo($path);
 	$title = $p['name'];
-	$title = infra_toutf($title);
+	$title = Path::toutf($title);
 
 	$parent = false;
 	$groups = &_xls_createGroup($title, $parent, 'book');
@@ -267,7 +269,7 @@ function &xls_make($path)
 
 		foreach ($data as $i => $row) {
 			//Бежим по строкам
-			//infra_foro($data,function(&$row,$i) use(&$head,&$pgpy,&$wasdata,&$wasgroup,&$argr,&$first_index){
+			//Each::foro($data,function(&$row,$i) use(&$head,&$pgpy,&$wasdata,&$wasgroup,&$argr,&$first_index){
 			$count = 0;
 			//$group=&$argr[0];//Группа может появится среди данных в листах
 			//echo $group['title'].'<br>';
@@ -346,13 +348,15 @@ function &xls_make($path)
 
 	return $groups;
 }
-function &xls_runPoss(&$data, $callback)
+function &xls_runPoss(&$data, $callback, $back)
 {
 	return xls_runGroups($data, function &(&$group) use ($back, &$callback) {
+		$r=null;
 		foreach($group['data'] as $i=>&$pos){
 			$r=&$callback($pos, $i, $group);
 			if(!is_null($r))return $r;
 		}
+		return $r;
 	});
 }
 
@@ -369,7 +373,7 @@ function _xls_createGroup($title, &$parent, $type, &$row = false)
 		foreach ($parent['descr'] as $first_index => $first_value) {
 			break;
 		}
-		$index = infra_forr($parent['descr'], function &(&$row, $i) use ($first_index, $title) {
+		$index = Each::forr($parent['descr'], function &(&$row, $i) use ($first_index, $title) {
 			if ($row[$first_index] == 'Описание') {
 				$row[$first_index + 1] .= '<br>'.$title;
 
@@ -440,11 +444,11 @@ function xls_processPoss(&$data, $ishead = false)
 			return; //Значит и данных нет
 		}
 
-		infra_forr($data['data'], function &(&$pos, $i, &$group) use (&$head, &$data) {
+		Each::forr($data['data'], function &(&$pos, $i, &$group) use (&$head, &$data) {
 
 			$p = array();
 
-			infra_foro($pos, function &($propvalue, $i) use (&$p, &$head) {
+			Each::foro($pos, function &($propvalue, $i) use (&$p, &$head) {
 				$propname = @$head[$i];
 				if (!$propname) {
 					return;
@@ -486,8 +490,8 @@ function xls_processPossFilter(&$data, $props)
 	//Если Нет какого-то свойства не учитываем позицию
 	xls_runGroups($data, function (&$data) use (&$props) {
 		$d = array();
-		infra_forr($data['data'], function &(&$pos) use (&$props, &$d) {
-			if (!infra_forr($props, function ($name) use ($pos) {
+		Each::forr($data['data'], function &(&$pos) use (&$props, &$d) {
+			if (!Each::forr($props, function ($name) use ($pos) {
 				if (!$pos[$name]) {
 					return true;
 				}
@@ -518,9 +522,9 @@ function xls_processPossBe(&$data, $check1, $check2)
 function xls_processPossFS(&$data, $props)
 {
 	xls_runPoss($data, function (&$pos) use (&$props) {
-		infra_foro($props, function ($name, $key) use (&$pos) {
+		Each::foro($props, function ($name, $key) use (&$pos) {
 			if (isset($pos[$key])) {
-				$pos[$name] = infra_forFS($pos[$key]);
+				$pos[$name] = Path::encode($pos[$key]);
 			}
 		});
 	});
@@ -532,14 +536,14 @@ function xls_processPossMore(&$data, $props)
 		$more = array();
 
 		$prop = array();
-		infra_forr($props, function &($name) use (&$prop) {
+		Each::forr($props, function &($name) use (&$prop) {
 			$prop[$name] = true;
 			$r = null;
 
 			return $r;
 		});
 
-		infra_foro($pos, function &(&$val, $name) use (&$p, &$prop, &$more) {
+		Each::foro($pos, function &(&$val, $name) use (&$p, &$prop, &$more) {
 			if ($prop[$name]) {
 				$p[$name] = &$val;
 			} else {
@@ -563,7 +567,7 @@ function xls_merge(&$gr, &$addgr)
 
 	//$gr['miss']=0;
 
-	infra_forr($addgr['childs'], function &(&$val) use (&$gr) {
+	Each::forr($addgr['childs'], function &(&$val) use (&$gr) {
 		$val['parent'] = &$gr;
 		$gr['childs'][] = &$val;
 		$r = null;
@@ -571,7 +575,7 @@ function xls_merge(&$gr, &$addgr)
 		return $r;
 	});
 
-	infra_foro($addgr['descr'], function &($des, $key) use (&$gr) {
+	Each::foro($addgr['descr'], function &($des, $key) use (&$gr) {
 		//if($key=='Описание')return;//Всё кроме Описания
 		if (is_null(@$gr['descr'][$key])) {
 			$gr['descr'][$key] = $des;
@@ -603,7 +607,7 @@ function &xls_runGroups(&$data, $callback, $back = false, $i = 0, &$group = fals
 		}
 	}
 
-	$r = &infra_forr($data['childs'], function &(&$val, $i) use ($callback, $back, &$data) {
+	$r = &Each::forr($data['childs'], function &(&$val, $i) use ($callback, $back, &$data) {
 		return xls_runGroups($val, $callback, $back, $i, $data);
 	}, $back);
 	if (!is_null($r)) {
@@ -637,10 +641,10 @@ function xls_processGroupFilter(&$data)
 		}
 	});
 
-	infra_foro($all, function (&$des) {
-		infra_forr($des['list'], function &(&$gr) use ($des) {
+	Each::foro($all, function (&$des) {
+		Each::forr($des['list'], function &(&$gr) use ($des) {
 			xls_merge($des['orig'], $gr);
-			infra_forr($gr['parent']['childs'], function &(&$g) use (&$gr) {
+			Each::forr($gr['parent']['childs'], function &(&$g) use (&$gr) {
 				if (infra_isEqual($g, $gr)) {
 					return new \infra_Fix('del', true);
 				}
@@ -660,7 +664,7 @@ function xls_processGroupFilter(&$data)
 	/*//$cat=$data['childs'][0];
 	$cat=$data;
 	unset($cat['parent']);
-	infra_forr($cat['childs'],function(&$g){
+	Each::forr($cat['childs'],function(&$g){
 		//if(!is_string($g['parent']))
 		$g['parent']=&$g['parent']['title'];
 		//unset($g['parent']);
@@ -684,7 +688,7 @@ function xls_processDescr(&$data)
 	//
 	xls_runGroups($data, function &(&$gr) {
 		$descr = array();
-		infra_forr($gr['descr'], function &($row) use (&$descr) {
+		Each::forr($gr['descr'], function &($row) use (&$descr) {
 			$row = array_values($row);
 			@$descr[$row[0]] = $row[1];
 			$r = null;
@@ -702,7 +706,7 @@ function xls_processGroupCalculate(&$data)
 	xls_runGroups($data, function &(&$data) {
 		$data['count'] = sizeof($data['data']);
 		$data['groups'] = 1;
-		infra_forr($data['childs'], function &(&$d) use (&$data) {
+		Each::forr($data['childs'], function &(&$d) use (&$data) {
 			$data['count'] += $d['count'];
 			$data['groups'] += $d['groups'];
 			$r = null;
@@ -733,26 +737,26 @@ function xls_processClass(&$data, $clsname, $musthave = false)
 	$run = function (&$data, $run, $clsname, $musthave, $clsvalue = '') {
 		if ($data['type'] == 'book' && $musthave) {
 			$data['miss'] = true;
-			$clsvalue = infra_forFS($data['title']);
+			$clsvalue = Path::encode($data['title']);
 		} elseif ($data['type'] == 'list' && @$data['descr'][$clsname]) {
 			//Если в descr указан класс то имя листа игнорируется иначе это будет группой каталога, а классом будет считаться имя книги
 			$data['miss'] = true;//Если у листа есть позиции без группы он не расформировывается
-			$clsvalue = infra_forFS($data['descr'][$clsname]);
+			$clsvalue = Path::encode($data['descr'][$clsname]);
 		} elseif ($data['type'] == 'row' && @$data['descr'][$clsname]) {
-			$clsvalue = infra_forFS($data['descr'][$clsname]);
+			$clsvalue = Path::encode($data['descr'][$clsname]);
 		}
-		infra_forr($data['data'], function &(&$pos) use ($clsname, $clsvalue) {
+		Each::forr($data['data'], function &(&$pos) use ($clsname, $clsvalue) {
 			if (!isset($pos[$clsname])) {
 				$pos[$clsname] = $clsvalue;//У позиции будет установлен ближайший класс
 			} else {
-				$pos[$clsname] = infra_forFS($pos[$clsname]);
+				$pos[$clsname] = Path::encode($pos[$clsname]);
 			}
 			$r = null;
 
 			return $r;
 		});
 
-		infra_forr($data['childs'], function &(&$data) use ($run, $clsvalue, $clsname, $musthave) {
+		Each::forr($data['childs'], function &(&$data) use ($run, $clsvalue, $clsname, $musthave) {
 			$run($data, $run, $clsname, $musthave, $clsvalue);
 			$r = null;
 
@@ -775,7 +779,7 @@ function xls_processGroupMiss(&$data)
 	xls_runGroups($data, function (&$gr, $i, &$group) {
 		if (@$gr['miss'] && @$gr['parent']) {
 			//Берём детей missгруппы и переносим их в родительскую
-			infra_forr($gr['childs'], function &(&$g) use (&$gr) {
+			Each::forr($gr['childs'], function &(&$g) use (&$gr) {
 				$g['parent'] = &$gr['parent'];
 				$r = null;
 
@@ -783,7 +787,7 @@ function xls_processGroupMiss(&$data)
 			});
 			array_splice($group['childs'], $i, 1, $gr['childs']);
 
-			infra_forr($gr['data'], function &(&$p) use (&$gr) {
+			Each::forr($gr['data'], function &(&$p) use (&$gr) {
 				$p['parent'] = &$gr['parent'];
 				$gr['parent']['data'][] = $p;
 				$r = null;
@@ -791,7 +795,7 @@ function xls_processGroupMiss(&$data)
 				return $r;
 			});
 
-			//infra_forr($gr['childs'],function(&$gr,&$childs, &$d){
+			//Each::forr($gr['childs'],function(&$gr,&$childs, &$d){
 		//		array_splice($childs,($i++)-1,0,array(&$d));
 		//		$d['parent']=&$gr['parent'];
 		//	},array(&$gr,&$childs));
@@ -861,7 +865,7 @@ function xls_pageList(&$poss, $page, $count, $sort, $numbers)
 	if ($sort == 'name') {
 		usort($poss, '_xls_sortName');
 	}
-	infra_forr($poss, function &(&$p, $i) {
+	Each::forr($poss, function &(&$p, $i) {
 		$p['num'] = $i + 1;
 		$r = null;
 
@@ -907,9 +911,9 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		$pos['files'] = array();
 	}
 	$dir = array();
-	if (infra_forr($props, function &($name) use (&$dir, &$pos) {
-		$rname = infra_seq_right($name);
-		$val = infra_seq_get($pos, $rname);
+	if (Each::forr($props, function &($name) use (&$dir, &$pos) {
+		$rname = Sequence::right($name);
+		$val = Sequence::get($pos, $rname);
 		if (!$val) {
 			return true;
 		}
@@ -928,7 +932,7 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		$dir = $pth;
 	}
 
-	$dir = infra_theme($dir);
+	$dir = Path::theme($dir);
 	if (!$dir) {
 		return false;
 	}
@@ -937,11 +941,11 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		$paths = glob($dir.'*');
 	} elseif (is_file($dir)) {
 		$paths = array($dir);
-		$p = infra_srcinfo($dir);
+		$p = Load::srcInfo($dir);
 		$dir = $p['folder'];
 	}
 
-	infra_forr($paths, function &($p) use (&$pos, $dir) {
+	Each::forr($paths, function &($p) use (&$pos, $dir) {
 
 		$d = explode('/', $p);
 		$name = array_pop($d);
@@ -960,19 +964,19 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		$ext=strtolower($p['extension']);*/
 		$dirs = infra_dirs();
 		$dir = preg_replace('/^'.str_replace('/', '\/', $dirs['data']).'/', '*', $dir);
-		$name = infra_toutf($dir.$name);
+		$name = Path::toutf($dir.$name);
 		if ($name{0} == '.') {
 			return;
 		}
 		$im = array('png', 'gif', 'jpg');
 		$te = array('html', 'tpl', 'mht', 'docx');
-		if (infra_forr($im, function ($e) use ($ext) {
+		if (Each::forr($im, function ($e) use ($ext) {
 			if ($ext == $e) {
 				return true;
 			}
 		})) {
 			$pos['images'][] = $name;
-		} elseif (infra_forr($te, function ($e) use ($ext) {
+		} elseif (Each::forr($te, function ($e) use ($ext) {
 			if ($ext == $e) {
 				return true;
 			}
@@ -1013,14 +1017,14 @@ $config=array(
 function &xls_init($path, $config = array())
 {
 	//Возвращает полностью гототовый массив
-	//if(infra_isAssoc($path)===true)return $path;//Это если переданы уже готовые данные вместо адреса до файла данных
+	//if(Each::isAssoc($path)===true)return $path;//Это если переданы уже готовые данные вместо адреса до файла данных
 
 	$parent = false;
 
 	$ar = array();
 	$isonefile = true;
-	infra_fora($path, function ($path) use (&$isonefile, &$ar) {
-		$p = infra_theme($path);
+	Each::fora($path, function ($path) use (&$isonefile, &$ar) {
+		$p = Path::theme($path);
 
 		if ($p && !is_dir($p)) {
 			if ($isonefile === true) {
@@ -1037,15 +1041,15 @@ function &xls_init($path, $config = array())
 				}
 				$fd=infra_nameinfo($file);
 				if (in_array($fd['ext'], array('xls', 'xlsx'))) {
-					$ar[]=$path.infra_toutf($file);
+					$ar[]=$path.Path::toutf($file);
 				}
 			}, scandir($p));
 		}
 	});
 	if (!@$config['root']) {
 		if ($isonefile) {
-			$d = infra_srcinfo($isonefile);
-			$config['root'] = infra_toutf($d['name']);
+			$d = Load::srcInfo($isonefile);
+			$config['root'] = Path::toutf($d['name']);
 		} else {
 			$config['root'] = 'Каталог';
 		}
@@ -1054,7 +1058,7 @@ function &xls_init($path, $config = array())
 	$data = _xls_createGroup($config['root'], $parent, 'set');//Сделали группу в которую объединяются все остальные
 	$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
 
-	infra_forr($ar, function &($path) use (&$data) {
+	Each::forr($ar, function &($path) use (&$data) {
 		$d = &xls_make($path);
 		if (!$d) {
 			return;
@@ -1141,7 +1145,7 @@ function &xls_init($path, $config = array())
 					continue;
 				}
 				$gr['data'][$i]['Производитель'] = $gr['descr']['Производитель'];
-				$gr['data'][$i]['producer'] = infra_forFS($gr['descr']['Производитель']);
+				$gr['data'][$i]['producer'] = Path::encode($gr['descr']['Производитель']);
 			}
 		}
 
@@ -1277,7 +1281,7 @@ class Xlsx
 	}
 	public static function addFiles(&$pos, $dir = false)
 	{
-		$conf=infra_config();
+		$conf=Infra::config();
 		$props=array('producer','article');
 		
 
@@ -1293,9 +1297,9 @@ class Xlsx
 		if (!$dir) {
 			$dir = array();
 			$pth=$conf['catalog']['dir'];
-			if (infra_forr($props, function &($name) use (&$dir, &$pos) {
-				$rname = infra_seq_right($name);
-				$val = infra_seq_get($pos, $rname);
+			if (Each::forr($props, function &($name) use (&$dir, &$pos) {
+				$rname = Sequence::right($name);
+				$val = Sequence::get($pos, $rname);
 				if (!$val) {
 					return true;
 				}
@@ -1313,7 +1317,7 @@ class Xlsx
 				$dir = $pth;
 			}
 		}
-		$dir = infra_theme($dir);
+		$dir = Path::theme($dir);
 		if (!$dir) {
 			return false;
 		}
@@ -1322,11 +1326,11 @@ class Xlsx
 			$paths = glob($dir.'*');
 		} elseif (is_file($dir)) {
 			$paths = array($dir);
-			$p = infra_srcinfo($dir);
+			$p = Load::srcInfo($dir);
 			$dir = $p['folder'];
 		}
 
-		infra_forr($paths, function &($p) use (&$pos, $dir) {
+		Each::forr($paths, function &($p) use (&$pos, $dir) {
 
 			$d = explode('/', $p);
 			$name = array_pop($d);
@@ -1345,19 +1349,19 @@ class Xlsx
 			$ext=strtolower($p['extension']);*/
 			$dirs = infra_dirs();
 			$dir = preg_replace('/^'.str_replace('/', '\/', $dirs['data']).'/', '*', $dir);
-			$name = infra_toutf($dir.$name);
+			$name = Path::toutf($dir.$name);
 			if ($name{0} == '.') {
 				return;
 			}
 			$im = array('png', 'gif', 'jpg');
 			$te = array('html', 'tpl', 'mht', 'docx');
-			if (infra_forr($im, function ($e) use ($ext) {
+			if (Each::forr($im, function ($e) use ($ext) {
 				if ($ext == $e) {
 					return true;
 				}
 			})) {
 				$pos['images'][] = $name;
-			} elseif (infra_forr($te, function ($e) use ($ext) {
+			} elseif (Each::forr($te, function ($e) use ($ext) {
 				if ($ext == $e) {
 					return true;
 				}

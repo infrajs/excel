@@ -15,21 +15,21 @@ History
 
 //..'xls'=>'?*pages/xls/xls.php?src='
 
-use infrajs\infra\ext\Ans;
+use infrajs\ans\Ans;
 use infrajs\excel;
 
-$isrc = infra_toutf(urldecode($_SERVER['QUERY_STRING']));
+$isrc = Path::toutf(urldecode($_SERVER['QUERY_STRING']));
 infra_admin_modified();
-$fdata = infra_srcinfo($isrc);
+$fdata = Load::srcInfo($isrc);
 $src = infra_admin_cache('files_get_php', function ($isrc) {
-	$src = infra_theme($isrc);
+	$src = Path::theme($isrc);
 	if ($src) {
 		return $src;
 	}
-	$fdata = infra_srcinfo($isrc);
-	$folder = infra_theme($fdata['folder']);
+	$fdata = Load::srcInfo($isrc);
+	$folder = Path::theme($fdata['folder']);
 
-	if (!infra_theme($folder)) {
+	if (!Path::theme($folder)) {
 		return false;
 	}
 	array_map(function ($file) use (&$result, $fdata) {
@@ -37,7 +37,7 @@ $src = infra_admin_cache('files_get_php', function ($isrc) {
 		if ($file{0} == '.') {
 			return;
 		}
-		$file=infra_toutf($file);
+		$file=Path::toutf($file);
 		$fd = infra_nameinfo($file);
 		
 		if ($fdata['id'] && $fdata['id'] != $fd['id']) {
@@ -57,13 +57,13 @@ $src = infra_admin_cache('files_get_php', function ($isrc) {
 			}
 		}
 		$result = $file;
-	}, scandir(infra_theme($folder)));
+	}, scandir(Path::theme($folder)));
 
 	if (!$result) {
 		return false;
 	}
 
-	return infra_theme($folder.$result);
+	return Path::theme($folder.$result);
 }, array($fdata['path']), isset($_GET['re']));
 
 $ans = array('src' => $isrc);
@@ -74,7 +74,7 @@ if (!$src) {
 	return;
 }
 
-$fdata = infra_srcinfo($src);
+$fdata = Load::srcInfo($src);
 
 
 if (in_array($fdata['ext'], array('xls', 'xlsx', 'csv'))) {

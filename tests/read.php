@@ -3,7 +3,7 @@
 infra_test(true);
 
 use infrajs\excel\Xlsx;
-use infrajs\infra\ext\Ans;
+use infrajs\ans\Ans;
 
 $ans = array();
 
