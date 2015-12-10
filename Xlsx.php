@@ -645,7 +645,7 @@ function xls_processGroupFilter(&$data)
 		Each::forr($des['list'], function &(&$gr) use ($des) {
 			xls_merge($des['orig'], $gr);
 			Each::forr($gr['parent']['childs'], function &(&$g) use (&$gr) {
-				if (infra_isEqual($g, $gr)) {
+				if (Each::isEqual($g, $gr)) {
 					return new \infra_Fix('del', true);
 				}
 				$r = null;

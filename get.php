@@ -21,7 +21,7 @@ use infrajs\excel;
 $isrc = Path::toutf(urldecode($_SERVER['QUERY_STRING']));
 infra_admin_modified();
 $fdata = Load::srcInfo($isrc);
-$src = infra_admin_cache('files_get_php', function ($isrc) {
+$src = Access::adminCache('files_get_php', function ($isrc) {
 	$src = Path::theme($isrc);
 	if ($src) {
 		return $src;
