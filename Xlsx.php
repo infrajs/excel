@@ -1045,6 +1045,7 @@ function &xls_init($path, $config = array())
 				}
 			}, scandir($p));
 		}
+		$r=null; return $r;
 	});
 	if (!@$config['root']) {
 		if ($isonefile) {
