@@ -4,6 +4,7 @@ use infrajs\hash\Hash;
 use infrajs\path\Path;
 use infrajs\load\Load;
 use infrajs\infra\Each;
+use infrajs\infra\Fix;
 use infrajs\cache\Cache;
 /*
 * xls методы для работы с xls документами. 
@@ -637,7 +638,7 @@ function xls_processGroupFilter(&$data)
 			$all[$title]['list'][] = &$gr;
 			//xls_merge($all[$title],$gr);
 			//у некой прошлой группы появляются новые childs.. но мы всё ещё бежим по какому-то его childs и новые добавленные будут проигнорированны
-			//return new infra_Fix('del');
+			//return new Fix('del');
 		}
 	});
 
@@ -646,7 +647,8 @@ function xls_processGroupFilter(&$data)
 			xls_merge($des['orig'], $gr);
 			Each::forr($gr['parent']['childs'], function &(&$g) use (&$gr) {
 				if (Each::isEqual($g, $gr)) {
-					return new infra_Fix('del', true);
+					$r=new Fix('del', true);
+					return $r;
 				}
 				$r = null;
 
@@ -1131,15 +1133,17 @@ function &xls_init($path, $config = array())
 
 	xls_runGroups($data, function (&$gr, $i, &$parent) {
 		//Имя листа или файла короткое и настоящие имя группы прячется в descr. но имя листа или файла также остаётся в title
-		$gr['name'] = $gr['descr']['Наименование'];//name крутое правильное Наименование группы
-		if (!$gr['name']) {
+		if(!empty($gr['descr']['Наименование'])){
+			$gr['name'] = $gr['descr']['Наименование'];//name крутое правильное Наименование группы
+		}
+		if (empty($gr['name'])) {
 			$gr['name'] = $gr['title'];
 		}//title то как называется файл или какое имя используется в адресной строке
-		if (!$gr['tparam']) {
+		if (empty($gr['tparam'])) {
 			$gr['tparam'] = $parent['tparam'];
 		}//tparam наследуется Оборудование:что-то, что-то
 
-		if ($gr['descr']['Производитель']) {
+		if (!empty($gr['descr']['Производитель'])) {
 			for ($i = 0, $il = sizeof($gr['data']); $i < $il; ++$i) {
 				if (!empty($gr['data'][$i]['Производитель'])) {
 					continue;
@@ -1189,7 +1193,7 @@ function &xls_init($path, $config = array())
 	}
 	xls_runGroups($data, function (&$group) {
 		$group['group'] = $group['parent']['title'];
-		if ($group['descr']['Наименование']) {
+		if (!empty($group['descr']['Наименование'])) {
 			$group['Группа'] = $group['descr']['Наименование'];
 		} else {
 			$group['Группа'] = $group['title'];
