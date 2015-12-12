@@ -102,14 +102,15 @@ function &xls_parseAll($path)
 			}
 			$data=array('list'=>$data);
 		} elseif ($in['ext'] == 'xlsx') {
-			$cacheFolder = Path::resolve('~xlsx/');
-			$cacheFolder .= Hash::make($path).'/';//кэш
-			Cache::fullrmdir($cacheFolder);//удалить старый кэш
+			$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
+			$cacheFolder .= Path::encode($path).'/';//кэш
+			Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
+			$r=mkdir($cacheFolder);
+			if(!$r) throw new \Exception('Не удалось создать папку для кэша '.$cacheFolder);
 
 			//разархивировать
 			$zip = new \ZipArchive();
 			if ($zip->open(Path::theme($path))) {
-				mkdir($cacheFolder);
 				$zip->extractTo($cacheFolder);
 				$zip->close();
 
@@ -1235,6 +1236,9 @@ class Xlsx
 	/**
 	 * Функция считывает листы из Excle книги
 	 */
+	public static $conf=array(
+		'cache'=>'|xlsx/'
+	);
 	public static function get($src)
 	{
 		$data=xls_make($src);
