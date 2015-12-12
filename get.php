@@ -38,7 +38,7 @@ $src = Access::adminCache('files_get_php', function ($isrc) {
 			return;
 		}
 		$file=Path::toutf($file);
-		$fd = infra_nameinfo($file);
+		$fd = Load::nameInfo($file);
 		
 		if ($fdata['id'] && $fdata['id'] != $fd['id']) {
 			return;

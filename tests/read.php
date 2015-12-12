@@ -1,18 +1,19 @@
 <?php
 
-infra_test(true);
+namespace infrajs\excel;
 
-use infrajs\excel\Xlsx;
+use infrajs\access\Access;
 use infrajs\ans\Ans;
 
+Access::test(true);
 $ans = array();
-
+return Ans::err($ans, 'Ошибка');
 $data = Xlsx::init('*excel/tests/resources/test.xlsx');
 
 if (!$data) {
 	return Ans::err($ans, 'Cant read test.xlsx');
 }
-
+	
 $data = Xlsx::init('*excel/tests/resources/test.csv');
 if (!$data) {
 	return Ans::err($ans, 'Cant read test.csv');

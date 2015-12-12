@@ -3,7 +3,8 @@ namespace infrajs\excel;
 use infrajs\hash\Hash;
 use infrajs\path\Path;
 use infrajs\load\Load;
-use infrajs\controller\Each;
+use infrajs\infra\Each;
+use infrajs\cache\Cache;
 /*
 * xls методы для работы с xls документами. 
 *
@@ -100,10 +101,9 @@ function &xls_parseAll($path)
 			}
 			$data=array('list'=>$data);
 		} elseif ($in['ext'] == 'xlsx') {
-			$dirs = infra_dirs();
-			$cacheFolder = $dirs['cache'].'xlsx/';
+			$cacheFolder = Path::resolve('~xlsx/');
 			$cacheFolder .= Hash::make($path).'/';//кэш
-			infra_cache_fullrmdir($cacheFolder);//удалить старый кэш
+			Cache::fullrmdir($cacheFolder);//удалить старый кэш
 
 			//разархивировать
 			$zip = new \ZipArchive();
@@ -348,7 +348,7 @@ function &xls_make($path)
 
 	return $groups;
 }
-function &xls_runPoss(&$data, $callback, $back)
+function &xls_runPoss(&$data, $callback, $back=false)
 {
 	return xls_runGroups($data, function &(&$group) use ($back, &$callback) {
 		$r=null;
@@ -646,7 +646,7 @@ function xls_processGroupFilter(&$data)
 			xls_merge($des['orig'], $gr);
 			Each::forr($gr['parent']['childs'], function &(&$g) use (&$gr) {
 				if (Each::isEqual($g, $gr)) {
-					return new \infra_Fix('del', true);
+					return new infra_Fix('del', true);
 				}
 				$r = null;
 
@@ -950,7 +950,7 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		$d = explode('/', $p);
 		$name = array_pop($d);
 		$n = mb_strtolower($name);
-		$fd = infra_nameinfo($n);
+		$fd = Load::nameInfo($n);
 		$ext = $fd['ext'];
 
 		//if(!$ext)return;
@@ -962,12 +962,11 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		/*$p=pathinfo($p);
 		$name=$p['basename'];
 		$ext=strtolower($p['extension']);*/
-		$dirs = infra_dirs();
-		$dir = preg_replace('/^'.str_replace('/', '\/', $dirs['data']).'/', '*', $dir);
+		
+		if ($name{0} == '.') return;
+		$dir=Path::pretty($dir);
 		$name = Path::toutf($dir.$name);
-		if ($name{0} == '.') {
-			return;
-		}
+		
 		$im = array('png', 'gif', 'jpg');
 		$te = array('html', 'tpl', 'mht', 'docx');
 		if (Each::forr($im, function ($e) use ($ext) {
@@ -1039,7 +1038,7 @@ function &xls_init($path, $config = array())
 				if ($file{0}=='.') {
 					return;
 				}
-				$fd=infra_nameinfo($file);
+				$fd=Load::nameInfo($file);
 				if (in_array($fd['ext'], array('xls', 'xlsx'))) {
 					$ar[]=$path.Path::toutf($file);
 				}
@@ -1336,30 +1335,24 @@ class Xlsx
 			$d = explode('/', $p);
 			$name = array_pop($d);
 			$n = mb_strtolower($name);
-			$fd = infra_nameinfo($n);
+			$fd = Load::nameInfo($n);
 			$ext = $fd['ext'];
 
 			//if(!$ext)return;
-			if (!is_file($dir.$name)) {
-				return;
-			}
+			if (!is_file($dir.$name)) return;
 			//$name=preg_replace('/\.\w{0,4}$/','',$name);
 
 			/*$p=pathinfo($p);
 			$name=$p['basename'];
 			$ext=strtolower($p['extension']);*/
-			$dirs = infra_dirs();
-			$dir = preg_replace('/^'.str_replace('/', '\/', $dirs['data']).'/', '*', $dir);
+			if ($name{0} == '.') return;
+			Path::pretty($dir);
 			$name = Path::toutf($dir.$name);
-			if ($name{0} == '.') {
-				return;
-			}
+			
 			$im = array('png', 'gif', 'jpg');
 			$te = array('html', 'tpl', 'mht', 'docx');
 			if (Each::forr($im, function ($e) use ($ext) {
-				if ($ext == $e) {
-					return true;
-				}
+				if ($ext == $e) return true;
 			})) {
 				$pos['images'][] = $name;
 			} elseif (Each::forr($te, function ($e) use ($ext) {
