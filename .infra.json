@@ -1,5 +1,5 @@
 {
 	"excel":{
-		"require":"*excel/infra.php"
+		"require":"-excel/infra.php"
 	}
 }

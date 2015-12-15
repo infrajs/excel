@@ -13,7 +13,7 @@ History
 Добавлена поддерж php файлов и возможность передачи get параметров запрашиваемому файлу
 */
 
-//..'xls'=>'?*pages/xls/xls.php?src='
+//..'xls'=>'?-pages/xls/xls.php?src='
 
 use infrajs\ans\Ans;
 use infrajs\excel;
@@ -68,7 +68,7 @@ $src = Access::adminCache('files_get_php', function ($isrc) {
 
 $ans = array('src' => $isrc);
 if (!$src) {
-	if (!infra_isphp()) {
+	if (!Load::isphp()) {
 		header('HTTP/1.0 404 Not Found');
 	}
 	return;
@@ -81,6 +81,6 @@ if (in_array($fdata['ext'], array('xls', 'xlsx', 'csv'))) {
 	$ans = excel\Xlsx::get($src);
 	return Ans::ans($ans);
 }
-if (!infra_isphp()) {
+if (!Load::isphp()) {
 	header('HTTP/1.0 400 Bad Request');
 }
