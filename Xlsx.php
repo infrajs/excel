@@ -1286,7 +1286,7 @@ class Xlsx
 	}
 	public static function addFiles(&$pos, $dir = false)
 	{
-		$conf=Infra::config();
+		$conf=Config::get();
 		$props=array('producer','article');
 		
 
