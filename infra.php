@@ -3,7 +3,7 @@ namespace infrajs\excel;
 
 use infrajs\event\Event;
 use infrajs\path\Path;
-use infrajs\infra\Infra;
+use infrajs\infra\Config;
 
 $conf=&Config::get('excel');
 $conf=array_merge(Xlsx::$conf, $conf);

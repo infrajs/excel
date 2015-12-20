@@ -1,5 +1,3 @@
 {
-	"excel":{
-		"require":"-excel/infra.php"
-	}
+	"require":"infra.php"
 }

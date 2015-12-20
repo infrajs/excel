@@ -103,7 +103,10 @@ function &xls_parseAll($path)
 			$cacheFolder .= Path::encode($path).'/';//кэш
 			Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
 			$r=mkdir($cacheFolder);
-			if(!$r) throw new \Exception('Не удалось создать папку для кэша '.$cacheFolder);
+			if(!$r) {
+				echo '<pre>';
+				throw new \Exception('Не удалось создать папку для кэша '.$cacheFolder);
+			}
 
 			//разархивировать
 			$zip = new \ZipArchive();
