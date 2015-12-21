@@ -3,7 +3,7 @@ namespace infrajs\excel;
 use infrajs\hash\Hash;
 use infrajs\path\Path;
 use infrajs\load\Load;
-use infrajs\infra\Each;
+use infrajs\each\Each;
 use infrajs\infra\Fix;
 use infrajs\cache\Cache;
 /*
