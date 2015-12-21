@@ -1,11 +1,13 @@
 <?php
 namespace infrajs\excel;
-use infrajs\hash\Hash;
+
 use infrajs\path\Path;
 use infrajs\load\Load;
 use infrajs\each\Each;
-use infrajs\infra\Fix;
+use infrajs\each\Fix;
+use infrajs\config\Config;
 use infrajs\cache\Cache;
+use infrajs\sequence\Sequence;
 /*
 * xls методы для работы с xls документами. 
 *
@@ -1289,7 +1291,7 @@ class Xlsx
 	}
 	public static function addFiles(&$pos, $dir = false)
 	{
-		$conf=Config::get();
+		$conf=Xlsx::$conf;
 		$props=array('producer','article');
 		
 
@@ -1304,7 +1306,7 @@ class Xlsx
 		}
 		if (!$dir) {
 			$dir = array();
-			$pth=$conf['catalog']['dir'];
+			$pth=Path::resolve($conf['dir']);
 			if (Each::forr($props, function &($name) use (&$dir, &$pos) {
 				$rname = Sequence::right($name);
 				$val = Sequence::get($pos, $rname);
