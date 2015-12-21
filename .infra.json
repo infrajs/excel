@@ -1,3 +1,4 @@
 {
-	"require":"infra.php"
+	"install":"install.php",
+	"conf":"infrajs\\excel\\Xlsx"
 }
