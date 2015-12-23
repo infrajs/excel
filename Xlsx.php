@@ -1289,9 +1289,8 @@ class Xlsx
 	{
 		return xls_parseAll($src);
 	}
-	public static function addFiles(&$pos, $dir = false)
+	public static function addFiles($root, &$pos, $dir = false)
 	{
-		$conf=Xlsx::$conf;
 		$props=array('producer','article');
 		
 
@@ -1306,7 +1305,7 @@ class Xlsx
 		}
 		if (!$dir) {
 			$dir = array();
-			$pth=Path::resolve($conf['dir']);
+			$pth=Path::resolve($root);
 			if (Each::forr($props, function &($name) use (&$dir, &$pos) {
 				$rname = Sequence::right($name);
 				$val = Sequence::get($pos, $rname);
@@ -1326,11 +1325,15 @@ class Xlsx
 			} else {
 				$dir = $pth;
 			}
+		} else {
+			$dir = $root.$dir;
 		}
+
 		$dir = Path::theme($dir);
 		if (!$dir) {
 			return false;
 		}
+
 
 		if (is_dir($dir)) {
 			$paths = glob($dir.'*');
