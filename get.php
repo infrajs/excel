@@ -1,25 +1,15 @@
 <?php
 
-/*
-Copyright 2008-2010 ITLife, Ltd. Togliatti, Samara Oblast, Russian Federation. http://itlife-studio.ru
-
-History
-23.04.2010
-Скрипт получает src без расширения и без цифры сортировки.... а возвращает html
-25.04.2010
-Добавлено кэширование modified
-
-09.05.2010
-Добавлена поддерж php файлов и возможность передачи get параметров запрашиваемому файлу
-*/
-
-//..'xls'=>'?-pages/xls/xls.php?src='
-
 use infrajs\ans\Ans;
-use infrajs\excel;
+use infrajs\load\Load;
+use infrajs\excel\Xlsx;
+
+if (!is_file('vendor/autoload.php')) {
+	chdir('../../../');
+	require_once('vendor/autoload.php');
+}
 
 $isrc = Path::toutf(urldecode($_SERVER['QUERY_STRING']));
-infra_admin_modified();
 $fdata = Load::srcInfo($isrc);
 $src = Access::cache('files_get_php', function ($isrc) {
 	$src = Path::theme($isrc);
