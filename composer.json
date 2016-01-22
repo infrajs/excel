@@ -10,6 +10,7 @@
 		"infrajs/sequence":"~1",
 		"infrajs/load":"~1",
 		"infrajs/each":"~1",
+		"infrajs/access":"~1",
 		"infrajs/cache":"~1"
 	}
 }

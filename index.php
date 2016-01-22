@@ -3,13 +3,15 @@
 use infrajs\ans\Ans;
 use infrajs\load\Load;
 use infrajs\excel\Xlsx;
+use infrajs\path\Path;
+use infrajs\access\Access;
 
 if (!is_file('vendor/autoload.php')) {
 	chdir('../../../');
 	require_once('vendor/autoload.php');
 }
 
-$isrc = Path::toutf(urldecode($_SERVER['QUERY_STRING']));
+$isrc = Ans::GET('src');
 $fdata = Load::srcInfo($isrc);
 $src = Access::cache('files_get_php', function ($isrc) {
 	$src = Path::theme($isrc);
@@ -68,7 +70,7 @@ $fdata = Load::srcInfo($src);
 
 
 if (in_array($fdata['ext'], array('xls', 'xlsx', 'csv'))) {
-	$ans = excel\Xlsx::get($src);
+	$ans = Xlsx::get($src);
 	return Ans::ans($ans);
 }
 if (!Load::isphp()) {
