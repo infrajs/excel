@@ -1,4 +1,5 @@
 {
-	"install":"install.php",
+	"update":"update.php",
+	"dependencies":"path",
 	"conf":"infrajs\\excel\\Xlsx"
 }
