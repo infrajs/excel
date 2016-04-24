@@ -103,8 +103,11 @@ function &xls_parseAll($path)
 		} elseif ($in['ext'] == 'xlsx') {
 			$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
 			$cacheFolder .= Path::encode($path).'/';//кэш
+
+			$cacheFolder=Path::tofs($cacheFolder);
 			Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
-			$r=mkdir($cacheFolder);
+
+			$r = mkdir($cacheFolder);
 			if(!$r) {
 				echo '<pre>';
 				throw new \Exception('Не удалось создать папку для кэша '.$cacheFolder);
