@@ -7,7 +7,9 @@
 		"psr-4": { "infrajs\\excel\\": "/" }
 	},
 	"require":{
+		"infrajs/router":"~1",
 		"infrajs/path":"~1",
+		"infrajs/ans":"~1",
 		"infrajs/sequence":"~1",
 		"infrajs/load":"~1",
 		"infrajs/each":"~1",
