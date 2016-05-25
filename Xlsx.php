@@ -257,14 +257,10 @@ function &xls_make($path)
 
 	foreach ($datamain as $title => $data) {
 		//Бежим по листам
-		if ($title{0} === '.') {
-			continue;
-		}//Не применяем лист у которого точка в начале имени
+		if ($title{0} === '.') continue; //Не применяем лист у которого точка в начале имени
 		$argr = array();//Чтобы была возможность определить следующую группу и при этом работать со ссылкой и не переопределять предыдущую
 		$argr[0] = &_xls_createGroup($title, $groups, 'list');
-		if (!$argr[0]) {
-			continue;
-		}
+		if (!$argr[0]) continue;
 		$groups['childs'][] = &$argr[0];
 
 		$head = false;//Заголовки ещё не нашли
@@ -281,9 +277,7 @@ function &xls_make($path)
 			//$group=&$argr[0];//Группа может появится среди данных в листах
 			//echo $group['title'].'<br>';
 			foreach ($row as $cell) {
-				if ($cell) {
-					$count++;
-				}
+				if ($cell) $count++;
 			}
 
 			if (!$head) {
@@ -324,9 +318,7 @@ function &xls_make($path)
 					}
 					$g = array();
 					$g[0] = &_xls_createGroup($row[$first_index], $argr[0], 'row', $row);//Создаём новую группу
-					if (!$g[0]) {
-						continue;
-					}
+					if (!$g[0]) continue;
 					$g[0]['parent']['childs'][] = &$g[0];
 					$wasgroup = true;
 					$wasdata = false;
@@ -339,10 +331,11 @@ function &xls_make($path)
 				} else {
 					if ($count === 1 && strlen($row[$first_index]) === 1) {
 						//подъём на уровень выше
-
-						if (@$argr[0]['parent']) {
-							$argr = array(&$argr[0]['parent']);
-							//echo '<b>'.$group['title'].'</b><br>';
+						if($argr[0]['parent']['type'] != 'book') {
+							if (@$argr[0]['parent']) {
+								$argr = array(&$argr[0]['parent']);
+								//echo '<b>'.$group['title'].'</b><br>';
+							}
 						}
 					} else {
 						$wasdata = true;
@@ -1054,7 +1047,7 @@ function &xls_init($path, $config = array())
 		}
 		$r=null; return $r;
 	});
-	if (!@$config['root']) {
+	if (empty($config['root'])) {
 		if ($isonefile) {
 			$d = Load::srcInfo($isonefile);
 			$config['root'] = Path::toutf($d['name']);
@@ -1068,9 +1061,7 @@ function &xls_init($path, $config = array())
 
 	Each::forr($ar, function &($path) use (&$data) {
 		$d = &xls_make($path);
-		if (!$d) {
-			return;
-		}
+		if (!$d) return;
 		$d['parent'] = &$data;
 		$data['childs'][] = &$d;
 		$r = null;
@@ -1080,27 +1071,19 @@ function &xls_init($path, $config = array())
 	
 	xls_processDescr($data);
 
-	if (!isset($config['Сохранить head'])) {
-		$config['Сохранить head'] = false;
-	}
+	if (!isset($config['Сохранить head'])) $config['Сохранить head'] = false;
+	
 	xls_processPoss($data, $config['Сохранить head']);
 
-	if (@!is_array($config['Переименовать колонки'])) {
-		$config['Переименовать колонки'] = array();
-	}
-	if (@!is_array($config['Удалить колонки'])) {
-		$config['Удалить колонки'] = array();
-	}
-	if (!isset($config['more'])) {
-		$config['more'] = false;
-	}
+	if (!isset($config['Переименовать колонки'])) $config['Переименовать колонки'] = array();	
+	if (!isset($config['Удалить колонки'])) $config['Удалить колонки'] = array();
+	if (!isset($config['more'])) $config['more'] = false;
+	
 
 	xls_runPoss($data, function (&$pos) use (&$config) {
 
 		foreach ($config['Удалить колонки'] as $k) {
-			if (isset($pos[$k])) {
-				unset($pos[$k]);
-			}
+			if (isset($pos[$k])) unset($pos[$k]);
 		}
 		foreach ($config['Переименовать колонки'] as $k => $v) {
 			if (isset($pos[$k])) {
@@ -1110,12 +1093,10 @@ function &xls_init($path, $config = array())
 		}
 	});
 
-	if (!isset($config['Имя файла'])) {
-		$config['Имя файла'] = 'Производитель';
-	}//Группа остаётся, а производитель попадает в описание каждой позиции
+	if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
 
 
-	if (@$config['Имя файла'] == 'Производитель') {
+	if ($config['Имя файла'] == 'Производитель') {
 		xls_processClass($data, 'Производитель', true);
 	}//Должен быть обязательно miss раставляется
 
@@ -1123,7 +1104,6 @@ function &xls_init($path, $config = array())
 		// пустая позиция
 		if (sizeof($pos) == 2) { //group_title Производитель
 			unset($group['data'][$i]);
-
 			return;
 		}
 	});
