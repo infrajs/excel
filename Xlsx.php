@@ -1009,7 +1009,7 @@ function &xls_init($path, $config = array())
 
 	$ar = array();
 	$isonefile = true;
-	Each::fora($path, function ($path) use (&$isonefile, &$ar) {
+	Each::exec($path, function ($path) use (&$isonefile, &$ar) {
 		$p = Path::theme($path);
 
 		if ($p && !is_dir($p)) {
@@ -1054,6 +1054,15 @@ function &xls_init($path, $config = array())
 
 		return $r;
 	});
+	
+	//Реверс записей на листе
+	foreach($data['childs'] as $book => $v) {
+		foreach($data['childs'][$book]['childs'] as $list => $vv) {
+			$data['childs'][$book]['childs'][$list]['data'] = array_reverse($data['childs'][$book]['childs'][$list]['data']);
+		}
+	
+	}
+
 	
 	xls_processDescr($data);
 
