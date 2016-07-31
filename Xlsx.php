@@ -1337,20 +1337,14 @@ class Xlsx
 			$name=$p['basename'];
 			$ext=strtolower($p['extension']);*/
 			if ($name{0} == '.') return;
-			Path::pretty($dir);
+			$dir = Path::pretty($dir);
 			$name = Path::toutf($dir.$name);
 			
 			$im = array('png', 'gif', 'jpg');
 			$te = array('html', 'tpl', 'mht', 'docx');
-			if (Each::forr($im, function ($e) use ($ext) {
-				if ($ext == $e) return true;
-			})) {
+			if (in_array($ext, $im)) {
 				$pos['images'][] = $name;
-			} elseif (Each::forr($te, function ($e) use ($ext) {
-				if ($ext == $e) {
-					return true;
-				}
-			})) {
+			} else if (in_array($ext, $te)) {
 				$pos['texts'][] = $name;
 			} else {
 				if ($ext != 'db') {
@@ -1361,6 +1355,7 @@ class Xlsx
 
 			return $r;
 		});
+
 		$pos['images'] = array_unique($pos['images']);
 		$pos['texts'] = array_unique($pos['texts']);
 		$pos['files'] = array_unique($pos['files']);
