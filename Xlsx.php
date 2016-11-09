@@ -104,6 +104,8 @@ function &xls_parseAll($path)
 			$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
 			$cacheFolder .= Path::encode($path).'/';//кэш
 
+			
+			
 			$cacheFolder=Path::tofs($cacheFolder);
 			Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
 
@@ -115,7 +117,12 @@ function &xls_parseAll($path)
 
 			//разархивировать
 			$zip = new \ZipArchive();
-			if ($zip->open(Path::theme($path))) {
+			$pathfs = Path::theme($path);
+
+			if ((int) phpversion() > 6) {
+				$pathfs = Path::toutf($pathfs);
+			} 
+			if ($zip->open($pathfs)) {
 				$zip->extractTo($cacheFolder);
 				$zip->close();
 
