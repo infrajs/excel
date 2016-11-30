@@ -102,11 +102,8 @@ function &xls_parseAll($path)
 			$data=array('list'=>$data);
 		} elseif ($in['ext'] == 'xlsx') {
 			$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
-			$cacheFolder .= Path::encode($path).'/';//кэш
-
-			
-			
-			$cacheFolder=Path::tofs($cacheFolder);
+			//$cacheFolder .= Path::encode($path).'/';//кэш			
+			$cacheFolder .= md5($path).'/';//кэш			
 			Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
 
 			$r = mkdir($cacheFolder);
@@ -119,11 +116,17 @@ function &xls_parseAll($path)
 			$zip = new \ZipArchive();
 			$pathfs = Path::theme($path);
 
+			
 			if ((int) phpversion() > 6) {
-				$pathfs = Path::toutf($pathfs);
-			} 
-			if ($zip->open($pathfs)) {
-				$zip->extractTo($cacheFolder);
+				$zipcacheFolder = Path::tofs($cacheFolder);
+				$zippathfs = Path::toutf($pathfs);
+			} else {
+				$zipcacheFolder = Path::tofs($cacheFolder); //Без кирилицы
+				$zippathfs = Path::tofs($pathfs);
+			}
+			$r = $zip->open($zippathfs);
+			if ($r===true) {
+				$zip->extractTo($zipcacheFolder);
 				$zip->close();
 
 				$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
@@ -241,7 +244,7 @@ function &xls_parse($path, $list = false)
 {
 	$data = &xls_parseAll($path);
 	if (!$list) {
-		$list = Each::foro($data, function (&$v, $k) {
+		$list = Each::foro($data, function &(&$v, $k) {
 			return $k;
 		});
 	}
@@ -249,7 +252,6 @@ function &xls_parse($path, $list = false)
 }
 function &xls_make($path)
 {
-	
 	$datamain = xls_parseAll($path);
 	
 	if (!$datamain) {
@@ -359,15 +361,15 @@ function &xls_runPoss(&$data, $callback, $back=false)
 {
 	return xls_runGroups($data, function &(&$group) use ($back, &$callback) {
 		$r=null;
-		foreach($group['data'] as $i=>&$pos){
-			$r=&$callback($pos, $i, $group);
-			if(!is_null($r))return $r;
+		foreach ($group['data'] as $i => &$pos){
+			$r = &$callback($pos, $i, $group);
+			if (!is_null($r)) return $r;
 		}
 		return $r;
 	});
 }
 
-function _xls_createGroup($title, &$parent, $type, &$row = false)
+function &_xls_createGroup($title, &$parent, $type, &$row = false)
 {
 	$tparam = '';
 	$descr = array();
@@ -395,8 +397,8 @@ function _xls_createGroup($title, &$parent, $type, &$row = false)
 		} else {
 			array_push($parent['descr'], array('Описание', $title));
 		}
-
-		return false;
+		$r = false;
+		return $r;
 	} else {
 		if (sizeof($t) > 1) {
 			$title = array_shift($t);
@@ -443,12 +445,12 @@ function xls_processPoss(&$data, $ishead = false)
 	//используется data head
 
 
-	xls_runGroups($data, function (&$data) use ($ishead) {
-
+	xls_runGroups($data, function &(&$data) use ($ishead) {
+		$r = null;
 		if (@$data['head']) {
 			$head = &$data['head'];
 		} else {
-			return; //Значит и данных нет
+			return $r; //Значит и данных нет
 		}
 
 		Each::forr($data['data'], function &(&$pos, $i, &$group) use (&$head, &$data) {
@@ -456,52 +458,57 @@ function xls_processPoss(&$data, $ishead = false)
 			$p = array();
 
 			Each::foro($pos, function &($propvalue, $i) use (&$p, &$head) {
+				$r = null;
 				$propname = @$head[$i];
 				if (!$propname) {
-					return;
+					return $r;
 				}
 				if ($propname{0} == '.') {
-					return;
+					return $r;
 				}//Колонки с точкой скрыты
 				if ($propvalue == '') {
-					return;
+					return $r;
 				}
 				if ($propvalue{0} == '.') {
-					return;
+					return $r;
 				}//Позиции у которых параметры начинаются с точки скрыты
 
 				$propvalue = trim($propvalue);
 				//$propvalue=preg_replace('/\s+$/','',$propvalue);
 				//$propvalue=preg_replace('/^\s+/','',$propvalue);
 				if (!$propname) {
-					return;
+					return $r;
 				}
 				$p[$propname] = $propvalue;
-				$r = null;
+				
 
 				return $r;
 			});
 			$p['parent'] = &$data;//Рекурсия
 			$group[$i] = &$p;
-			$r = null;
 
 			return $r;
 		});
 		if (!$ishead) {
 			unset($data['head']);
 		}
+		$r = null; return $r;
 	});
 }
 function xls_processPossFilter(&$data, $props)
 {
 	//Если Нет какого-то свойства не учитываем позицию
-	xls_runGroups($data, function (&$data) use (&$props) {
+	xls_runGroups($data, function &(&$data) use (&$props) {
 		$d = array();
 		Each::forr($data['data'], function &(&$pos) use (&$props, &$d) {
-			if (!Each::forr($props, function ($name) use ($pos) {
+
+			if (!Each::forr($props, function &($name) use ($pos) {
+				$r = null;
 				if (!$pos[$name]) {
-					return true;
+					$r = true;
+					return $r;
 				}
+				return $r;
 			})) {
 				$d[] = &$pos;
 			}
@@ -510,6 +517,7 @@ function xls_processPossFilter(&$data, $props)
 			return $r;
 		});
 		$data['data'] = $d;
+		$r = null; return $r;
 	});
 }
 
@@ -517,28 +525,33 @@ function xls_processPossBe(&$data, $check1, $check2)
 {
 	//Если у позиции нет поля check1.. то оно будет равнятся полю check2
 	//используется data
-	xls_runPoss($data, function (&$pos) use ($check1, $check2) {
+	xls_runPoss($data, function &(&$pos) use ($check1, $check2) {
+		$r = null;
 		if (is_null($pos[$check1])) {
 			$pos[$check1] = $pos[$check2];
 		}
 		if (is_null($pos[$check2])) {
 			$pos[$check2] = $pos[$check1];
 		}
+		return $r;
 	});
 }
 function xls_processPossFS(&$data, $props)
 {
-	xls_runPoss($data, function (&$pos) use (&$props) {
-		Each::foro($props, function ($name, $key) use (&$pos) {
+	xls_runPoss($data, function &(&$pos) use (&$props) {
+		return Each::foro($props, function &($name, $key) use (&$pos) {
+			$r = null;
 			if (isset($pos[$key])) {
 				$pos[$name] = Path::encode($pos[$key]);
 			}
+			return $r;
 		});
 	});
 };
 function xls_processPossMore(&$data, $props)
 {
-	xls_runPoss($data, function (&$pos, $i, &$group) use (&$props) {
+	xls_runPoss($data, function &(&$pos, $i, &$group) use (&$props) {
+		$r = null;
 		$p = array();
 		$more = array();
 
@@ -551,7 +564,7 @@ function xls_processPossMore(&$data, $props)
 		});
 
 		Each::foro($pos, function &(&$val, $name) use (&$p, &$prop, &$more) {
-			if ($prop[$name]) {
+			if (!empty($prop[$name])) {
 				$p[$name] = &$val;
 			} else {
 				$more[$name] = &$val;
@@ -564,6 +577,7 @@ function xls_processPossMore(&$data, $props)
 			$p['more'] = &$more;
 		}
 		$group['data'][$i] = &$p;
+		return $r;
 	});
 }
 
@@ -573,12 +587,10 @@ function xls_merge(&$gr, &$addgr)
 
 
 	//$gr['miss']=0;
-
 	Each::forr($addgr['childs'], function &(&$val) use (&$gr) {
 		$val['parent'] = &$gr;
 		$gr['childs'][] = &$val;
 		$r = null;
-
 		return $r;
 	});
 
@@ -634,7 +646,7 @@ function xls_processGroupFilter(&$data)
 {
 
 	$all = array();
-	xls_runGroups($data, function (&$gr) use (&$all) {
+	xls_runGroups($data, function &(&$gr) use (&$all) {
 		$title = mb_strtolower($gr['title']);
 		//echo $title.'<br>';
 		if (!isset($all[$title])) {
@@ -646,9 +658,10 @@ function xls_processGroupFilter(&$data)
 			//у некой прошлой группы появляются новые childs.. но мы всё ещё бежим по какому-то его childs и новые добавленные будут проигнорированны
 			//return new Fix('del');
 		}
+		$r = null; return $r;
 	});
 
-	Each::foro($all, function (&$des) {
+	Each::foro($all, function &(&$des) {
 		Each::forr($des['list'], function &(&$gr) use ($des) {
 			xls_merge($des['orig'], $gr);
 			Each::forr($gr['parent']['childs'], function &(&$g) use (&$gr) {
@@ -700,12 +713,10 @@ function xls_processDescr(&$data)
 			$row = array_values($row);
 			@$descr[$row[0]] = $row[1];
 			$r = null;
-
 			return $r;
 		});
 		$gr['descr'] = &$descr;
 		$r = null;
-
 		return $r;
 	});
 }
@@ -721,9 +732,7 @@ function xls_processGroupCalculate(&$data)
 
 			return $r;
 		});
-		$r = null;
-
-		return $r;
+		$r = null; return $r;
 	}, true);
 };
 
@@ -738,6 +747,7 @@ function xls_processClassEmpty(&$data, $clsname)
 			$poss[] = $gr['data'][$i];
 		}
 		$gr['data'] = $poss;
+		$r = null; return $r;
 	});
 }
 function xls_processClass(&$data, $clsname, $musthave = false)
@@ -784,7 +794,7 @@ function xls_processGroupMiss(&$data)
 		return false;
 	}
 
-	xls_runGroups($data, function (&$gr, $i, &$group) {
+	xls_runGroups($data, function &(&$gr, $i, &$group) {
 		if (@$gr['miss'] && @$gr['parent']) {
 			//Берём детей missгруппы и переносим их в родительскую
 			Each::forr($gr['childs'], function &(&$g) use (&$gr) {
@@ -809,6 +819,7 @@ function xls_processGroupMiss(&$data)
 		//	},array(&$gr,&$childs));
 		//	$arr[]=&$gr;
 		}
+		$r = null; return $r;
 	}, true);//Если бежим вперёд повторы несколько раз находим, так как добавляем в конец// Если бежим сзади рушится порядок
 }
 function _xls_sort($a, $b)
@@ -1016,7 +1027,7 @@ function &xls_init($path, $config = array())
 
 	$ar = array();
 	$isonefile = true;
-	Each::exec($path, function ($path) use (&$isonefile, &$ar) {
+	Each::exec($path, function &($path) use (&$isonefile, &$ar) {
 		$p = Path::theme($path);
 
 		if ($p && !is_dir($p)) {
@@ -1082,8 +1093,8 @@ function &xls_init($path, $config = array())
 	if (!isset($config['more'])) $config['more'] = false;
 	
 
-	xls_runPoss($data, function (&$pos) use (&$config) {
-
+	xls_runPoss($data, function &(&$pos) use (&$config) {
+		$r = null;
 		foreach ($config['Удалить колонки'] as $k) {
 			if (isset($pos[$k])) unset($pos[$k]);
 		}
@@ -1093,6 +1104,7 @@ function &xls_init($path, $config = array())
 				unset($pos[$k]);
 			}
 		}
+		return $r;
 	});
 
 	if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
@@ -1102,12 +1114,14 @@ function &xls_init($path, $config = array())
 		xls_processClass($data, 'Производитель', true);
 	}//Должен быть обязательно miss раставляется
 
-	xls_runPoss($data, function (&$pos, $i, &$group) {
+	xls_runPoss($data, function &(&$pos, $i, &$group) {
 		// пустая позиция
+		$r = null;
 		if (sizeof($pos) == 2) { //group_title Производитель
 			unset($group['data'][$i]);
-			return;
+			return $r;
 		}
+		return $r;
 	});
 
 	
@@ -1119,7 +1133,7 @@ function &xls_init($path, $config = array())
 
 //xls_processGroupCalculate($data);//Добавляются свойства count groups сколько позиций и групп группы должны быть уже определены... почищены...				
 
-	xls_runGroups($data, function (&$gr, $i, &$parent) {
+	xls_runGroups($data, function &(&$gr, $i, &$parent) {
 		//Имя листа или файла короткое и настоящие имя группы прячется в descr. но имя листа или файла также остаётся в title
 		if(!empty($gr['descr']['Наименование'])){
 			$gr['name'] = $gr['descr']['Наименование'];//name крутое правильное Наименование группы
@@ -1140,7 +1154,7 @@ function &xls_init($path, $config = array())
 				$gr['data'][$i]['producer'] = Path::encode($gr['descr']['Производитель']);
 			}
 		}
-
+		$r = null; return $r;
 	});
 
 	if (@!is_array($config['Подготовить для адреса'])) {
@@ -1152,9 +1166,10 @@ function &xls_init($path, $config = array())
 	if (empty($config['Обязательные колонки'])) {
 		$config['Обязательные колонки'] = array('article','producer');
 	}
-	xls_runGroups($data, function (&$group) use ($config) {
+	xls_runGroups($data, function &(&$group) use ($config) {
+		$r = null; 
 		if (empty($group['data'])) {
-			return;
+			return $r;
 		}
 		for ($i = 0, $l = sizeof($group['data']); $i < $l; ++$i) {
 			foreach ($config['Обязательные колонки'] as $propneed) {
@@ -1165,6 +1180,7 @@ function &xls_init($path, $config = array())
 			}
 		}
 		$group['data'] = array_values($group['data']);
+		return $r;
 	});
 
 	if (@!$config['Известные колонки']) {
@@ -1179,41 +1195,51 @@ function &xls_init($path, $config = array())
 		xls_processPossMore($data, $config['Известные колонки']);
 		//позициям + more
 	}
-	xls_runGroups($data, function (&$group) {
+	xls_runGroups($data, function &(&$group) {
 		$group['group'] = $group['parent']['title'];
 		if (!empty($group['descr']['Наименование'])) {
 			$group['Группа'] = $group['descr']['Наименование'];
 		} else {
 			$group['Группа'] = $group['title'];
 		}
+		$r = null; return $r;
 	});
-	xls_runPoss($data, function (&$pos, $i, $group) {
+	xls_runPoss($data, function &(&$pos, $i, $group) {
+		$r = null;
 		$pos['group'] = $group['title'];
 		$pos['Группа'] = $group['Группа'];
+		return $r;
 	});
 	
 
-	if (!@$config['Ссылка parent']) {
-		xls_runGroups($data, function (&$group) {
+	if (empty($config['Ссылка parent'])) {
+		xls_runGroups($data, function &(&$group) {
+			$r = null;
 			unset($group['parent']);
+			return $r;
 		});
-		xls_runPoss($data, function (&$pos, $i) {
+		xls_runPoss($data, function &(&$pos, $i) {
+			$r = null;
 			unset($pos['parent']);
+			return $r;
 		});
 	}
 
-	xls_runGroups($data, function (&$data, $i, &$group) {
+	xls_runGroups($data, function &(&$data, $i, &$group) {
 		//path
-
+		$r = null;
 		if (!$group) {
 			$data['path'] = array();
 		} else {
 			$data['path'] = $group['path'];
 			$data['path'][] = $data['title'];
 		}
+		return $r;
 	});
-	xls_runPoss($data, function (&$pos, $i, &$group) {
+	xls_runPoss($data, function &(&$pos, $i, &$group) {
+		$r = null;
 		$pos['path'] = $group['path'];
+		return $r;
 	});
 
 	return $data;
@@ -1226,19 +1252,21 @@ class Xlsx
 	public static $conf=array(
 		'cache'=>'!xlsx/'
 	);
-	public static function get($src)
+	public static function &get($src)
 	{
 		$data=xls_make($src);
 		
 		xls_processDescr($data);
 		
 		xls_processPoss($data);
-		
-		Xlsx::runGroups($data, function (&$gr) {
+
+		Xlsx::runGroups($data, function &(&$gr) {
 			unset($gr['parent']);
+			$r = null; return $r;
 		});
-		Xlsx::runPoss($data, function (&$pos) {
+		Xlsx::runPoss($data, function &(&$pos) {
 			unset($pos['parent']);
+			$r = null; return $r;
 		});
 		return $data;
 	}
