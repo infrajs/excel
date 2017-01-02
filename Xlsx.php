@@ -254,9 +254,8 @@ function &xls_make($path)
 {
 	$datamain = xls_parseAll($path);
 	
-	if (!$datamain) {
-		return;
-	}
+	if (!$datamain) return $datamain;
+	
 	$p = Load::srcInfo($path);
 	$title = $p['name'];
 	$title = Path::toutf($title);
@@ -338,7 +337,7 @@ function &xls_make($path)
 //$group=&$g;//Теперь ссылка на новую группу и следующие данные будут добавляться в неё
 					//Новая ссылка забивает на старую, простое присвоение это новое место куда указывает ссылка
 				} else {
-					if ($count === 1 && strlen($row[$first_index]) === 1) {
+					if (!empty($row[$first_index]) && $count === 1 && strlen($row[$first_index]) === 1) {
 						//подъём на уровень выше
 						if($argr[0]['parent']['type'] != 'book') {
 							if (@$argr[0]['parent']) {
@@ -1064,11 +1063,12 @@ function &xls_init($path, $config = array())
 	$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
 
 	Each::forr($ar, function &($path) use (&$data) {
+		$r = null;
 		$d = &xls_make($path);
-		if (!$d) return;
+		if (!$d) return $r;
 		$d['parent'] = &$data;
 		$data['childs'][] = &$d;
-		$r = null;
+		
 
 		return $r;
 	});
