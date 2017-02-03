@@ -330,7 +330,11 @@ function &xls_make($path)
 					$g[0]['parent']['childs'][] = &$g[0];
 					$wasgroup = true;
 					$wasdata = false;
-					$g[0]['descr'] = array_merge($g[0]['parent']['descr'], $g[0]['descr']);
+
+					$pdescr = $g[0]['parent']['descr'];
+					unset($pdescr['Наименование']);//Наименование родительской группы не наследуем
+					$g[0]['descr'] = array_merge($pdescr, $g[0]['descr']);
+
 					$g[0]['head'] = &$g[0]['parent']['head'];
 					$argr = array(&$g[0]);
 
@@ -417,12 +421,20 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 	$title = preg_replace('/^\s+/', '', $title);
 	$title = preg_replace('/\s+$/', '', $title);
 	$title = preg_replace('/\s+/', ' ', $title);
+
+
+	if ($type == 'set') $pitch = 0;
+	if ($type == 'book') $pitch = 1;
+	if ($type == 'list') $pitch = 2;
+	if ($type == 'row') $pitch = 3;
 	// title=title.toUpperCase();
+	//array_push($descr, array('Наименование', $title));
 	$res = array(
 		//'tparam'=>false,
 		//'groups'=>false,//Количество групп вместе с текущей
 		//'count'=>false,
 		//'row' => $row,//Вся строка группы
+		'pitch' => $pitch, //Шаг от верхнего уровня
 		'miss' => $miss,//Группу надо расформировать, но мы не знаем ещё есть ли в ней позиции
 		'type' => $type,
 		'parent' => &$parent,
@@ -584,18 +596,35 @@ function xls_merge(&$gr, &$addgr)
 {
 	//Всё из группы addgr нужно перенести в gr
 
-
+	//echo $addgr['type'];
 	//$gr['miss']=0;
-	Each::forr($addgr['childs'], function &(&$val) use (&$gr) {
+	if ($gr['pitch'] < $addgr['pitch'] && Xlsx::isParent($addgr, $gr)) {
+		$gr['childs'] = array_merge($addgr['childs'], $gr['childs']);
+	} else {
+		$gr['childs'] = array_merge($gr['childs'], $addgr['childs']);
+	}
+	Each::forr($addgr['childs'], function &(&$val) use (&$gr, $addgr) {
 		$val['parent'] = &$gr;
-		$gr['childs'][] = &$val;
+		//Объединения с вложенной группой добавляется до своих подгрупп
+		//Сначало собираем все подгруппы для добавление в текущую и разом добавляем
+		/*$r = null;
+		if ($gr['type'] == 'set' && $addgr['type'] == 'book') {
+			return $r;
+		} else if($gr['type'] == 'set' && $addgr['type'] == 'list') {
+			return $r;
+		} else if($gr['type'] == 'set' && $addgr['type'] == 'row') {
+			return $r;
+		} else {
+			//if (in_array($addgr['type'],array('row','list'))) {
+			$gr['childs'][] = &$val;
+		}*/
 		$r = null;
 		return $r;
 	});
 
 	Each::foro($addgr['descr'], function &($des, $key) use (&$gr) {
-		//if($key=='Описание')return;//Всё кроме Описания
-		if (is_null(@$gr['descr'][$key])) {
+		//if ($key=='Наименование') return;
+		if (!isset($gr['descr'][$key])) {
 			$gr['descr'][$key] = $des;
 		};
 		$r = null;
@@ -661,8 +690,9 @@ function xls_processGroupFilter(&$data)
 	});
 
 	Each::foro($all, function &(&$des) {
-		Each::forr($des['list'], function &(&$gr) use ($des) {
+		Each::forr($des['list'], function &(&$gr) use (&$des) {
 			xls_merge($des['orig'], $gr);
+			//xls_merge($gr, $des['orig']);
 			Each::forr($gr['parent']['childs'], function &(&$g) use (&$gr) {
 				if (Each::isEqual($g, $gr)) {
 					$r=new Fix('del', true);
@@ -680,16 +710,17 @@ function xls_processGroupFilter(&$data)
 
 		return $r;
 	});
-
+	
 	/*//$cat=$data['childs'][0];
 	$cat=$data;
 	unset($cat['parent']);
-	Each::forr($cat['childs'],function(&$g){
+	Each::forr($cat['childs'], function &(&$g){
 		//if(!is_string($g['parent']))
 		$g['parent']=&$g['parent']['title'];
 		//unset($g['parent']);
 		$g['childs']=sizeof($g['childs']);
 		$g['data']=sizeof($g['data']);
+		$r = null; return $r;
 	});
 	echo '<pre>';
 	print_r($cat);
@@ -1042,9 +1073,9 @@ function &xls_init($path, $config = array())
 				if ($file{0}=='.') {
 					return;
 				}
-				$fd=Load::nameInfo($file);
+				$fd = Load::nameInfo($file);
 				if (in_array($fd['ext'], array('xls', 'xlsx'))) {
-					$ar[]=$path.Path::toutf($file);
+					$ar[] = $path.Path::toutf($file);
 				}
 			}, scandir($p));
 		}
@@ -1068,17 +1099,18 @@ function &xls_init($path, $config = array())
 		if (!$d) return $r;
 		$d['parent'] = &$data;
 		$data['childs'][] = &$d;
-		
-
 		return $r;
 	});
 	
-	//Реверс записей на листе
-	foreach($data['childs'] as $book => $v) {
-		foreach($data['childs'][$book]['childs'] as $list => $vv) {
-			$data['childs'][$book]['childs'][$list]['data'] = array_reverse($data['childs'][$book]['childs'][$list]['data']);
-		}
 	
+	//Реверс записей на листе
+	if (!isset($config['listreverse'])) $config['listreverse'] = false;
+	if ($config['listreverse']) {
+		foreach($data['childs'] as $book => $v) {
+			foreach($data['childs'][$book]['childs'] as $list => $vv) {
+				$data['childs'][$book]['childs'][$list]['data'] = array_reverse($data['childs'][$book]['childs'][$list]['data']);
+			}
+		}
 	}
 
 	
@@ -1126,7 +1158,6 @@ function &xls_init($path, $config = array())
 
 	
 	xls_processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
-
 
 	xls_processGroupMiss($data);//Группы miss(производители) расформировываются
 
@@ -1252,6 +1283,17 @@ class Xlsx
 	public static $conf=array(
 		'cache'=>'!xlsx/'
 	);
+	public static function isParent(&$layer, &$parent)
+	{
+		while ($layer) {
+			if (Each::isEqual($parent, $layer)) {
+				return true;
+			}
+			$layer = &$layer['parent'];
+		}
+
+		return false;
+	}
 	public static function &get($src)
 	{
 		$data=xls_make($src);
