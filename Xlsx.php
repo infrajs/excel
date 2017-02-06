@@ -1405,15 +1405,15 @@ class Xlsx
 			$n = mb_strtolower($name);
 			$fd = Load::nameInfo($n);
 			$ext = $fd['ext'];
-
+			$r = null;
 			//if(!$ext)return;
-			if (!is_file($dir.$name)) return;
+			if (!is_file($dir.$name)) return $r;
 			//$name=preg_replace('/\.\w{0,4}$/','',$name);
 
 			/*$p=pathinfo($p);
 			$name=$p['basename'];
 			$ext=strtolower($p['extension']);*/
-			if ($name{0} == '.') return;
+			if ($name{0} == '.') return $r;
 			$dir = Path::pretty($dir);
 			$name = Path::toutf($dir.$name);
 			
@@ -1428,8 +1428,6 @@ class Xlsx
 					$pos['files'][] = $name;
 				}
 			}
-			$r = null;
-
 			return $r;
 		});
 
