@@ -1364,11 +1364,10 @@ class Xlsx
 			if (Each::forr($props, function &($name) use (&$dir, &$pos) {
 				$rname = Sequence::right($name);
 				$val = Sequence::get($pos, $rname);
-				if (!$val) {
-					return true;
-				}
-				$dir[] = $val;
 				$r = null;
+				if (!$val) return $r;
+				$dir[] = $val;
+				
 				return $r;
 			})) {
 				return;
