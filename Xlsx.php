@@ -119,12 +119,16 @@ function &xls_parseAll($path)
 			
 			if ((int) phpversion() > 6) {
 				$zipcacheFolder = Path::tofs($cacheFolder);
-				$zippathfs = Path::toutf($pathfs);
+				$archiveFile = Path::toutf($pathfs);
+				if (!empty($_SERVER['WINDIR'])) { //Только для Виндовс
+					$archiveFile = Path::toutf($archiveFile);
+					//$cacheFolder = Path::toutf($cacheFolder);
+				}
 			} else {
 				$zipcacheFolder = Path::tofs($cacheFolder); //Без кирилицы
-				$zippathfs = Path::tofs($pathfs);
+				$archiveFile = Path::tofs($pathfs);
 			}
-			$r = $zip->open($zippathfs);
+			$r = $zip->open($archiveFile);
 			if ($r===true) {
 				$zip->extractTo($zipcacheFolder);
 				$zip->close();
