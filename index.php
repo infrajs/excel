@@ -12,12 +12,15 @@ if (!is_file('vendor/autoload.php')) {
 }
 
 $isrc = Ans::GET('src');
+
 $fdata = Load::srcInfo($isrc);
+
 $src = Access::cache('files_get_php', function ($isrc) {
 	$src = Path::theme($isrc);
 	if ($src) {
 		return $src;
 	}
+
 	$fdata = Load::srcInfo($isrc);
 	$folder = Path::theme($fdata['folder']);
 
@@ -68,9 +71,9 @@ if (!$src) {
 
 $fdata = Load::srcInfo($src);
 
-
 if (in_array($fdata['ext'], array('xls', 'xlsx', 'csv'))) {
 	$ans = Xlsx::get($src);
+	$ans['src'] = $isrc;
 	return Ans::ans($ans);
 }
 if (!Load::isphp()) {

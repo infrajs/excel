@@ -29,7 +29,7 @@ use infrajs\sequence\Sequence;
 	xls_processDescr($data);//descr приводится к виду ключ значение
 	xls_run($data,function($group){//Бежим по всем группам
 		unset($group['parent']);//Удалили рекурсивное свойсто parent
-		for($i=0,$l=sizeof($group['data']);$i<$l;$i++){
+		for ($i=0, $l=sizeof($group['data']);$i<$l;$i++){
 			$pos=$group['data'][$i];
 			unset($pos['group']);//Удалили рекурсивное свойсто group
 		}
@@ -256,10 +256,9 @@ function &xls_parse($path, $list = false)
 }
 function &xls_make($path)
 {
-	$datamain = xls_parseAll($path);
-	
+	$datamain = xls_parseAll($path);	
 	if (!$datamain) return $datamain;
-	
+
 	$p = Load::srcInfo($path);
 	$title = $p['name'];
 	$title = Path::toutf($title);
@@ -361,7 +360,6 @@ function &xls_make($path)
 			}
 		}
 	}
-
 	return $groups;
 }
 function &xls_runPoss(&$data, $callback, $back=false)
@@ -1120,7 +1118,7 @@ function &xls_init($path, $config = array())
 	
 	xls_processDescr($data);
 
-	if (!isset($config['Сохранить head'])) $config['Сохранить head'] = false;
+	if (!isset($config['Сохранить head'])) $config['Сохранить head'] = true;
 	
 	xls_processPoss($data, $config['Сохранить head']);
 
@@ -1304,7 +1302,7 @@ class Xlsx
 		
 		xls_processDescr($data);
 		
-		xls_processPoss($data);
+		xls_processPoss($data, true);
 
 		Xlsx::runGroups($data, function &(&$gr) {
 			unset($gr['parent']);
