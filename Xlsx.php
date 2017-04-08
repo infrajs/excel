@@ -365,7 +365,8 @@ function &xls_make($path)
 function &xls_runPoss(&$data, $callback, $back=false)
 {
 	return xls_runGroups($data, function &(&$group) use ($back, &$callback) {
-		$r=null;
+		$r = null;
+		if(empty($group['data'])) return $r;
 		foreach ($group['data'] as $i => &$pos){
 			$r = &$callback($pos, $i, $group);
 			if (!is_null($r)) return $r;
