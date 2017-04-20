@@ -51,198 +51,7 @@ function &xls_parseTable($path, $list)
 }
 function &xls_parseAll($path)
 {
-	$data = Cache::exec(array($path), 'xls_parseAll', function &($path) {
-
-		$file = Path::theme($path);
-
-		
-		$data = array();
-		if (!$file) {
-			return $data;
-		}
-
-		$in = Load::srcInfo($path);
-
-		
-		if ($in['ext'] == 'xls') {
-			require_once __DIR__.'/excel_parser/oleread.php';
-			require_once __DIR__.'/excel_parser/reader.php';
-
-			if (!$file) {
-				return $data;
-			}
-			
-			$d = new \Spreadsheet_Excel_Reader();
-			$d->setOutputEncoding('utf-8');
-			$d->read($file);
-
-			Each::forr($d->boundsheets, function &($v, $k) use (&$d, &$data) {
-				$data[$v['name']] = &$d->sheets[$k]['cells'];
-				$r = null;
-
-				return $r;
-			});
-		} elseif ($in['ext'] == 'csv') {
-			$handle = fopen('php://memory', 'w+');
-			fwrite($handle, Path::toutf(file_get_contents($file)));
-			rewind($handle);
-			$data = array(); //Массив будет хранить данные из csv
-			while (($line = fgetcsv($handle, 0, ";")) !== false) { //Проходим весь csv-файл, и читаем построчно. 3-ий параметр разделитель поля
-				$data[] = $line; //Записываем строчки в массив
-			}
-			fclose($handle);
-			foreach($data as $k=>$v){
-				foreach($data[$k] as $kk=>$vv){
-					$vv=trim($vv);
-					if($vv==='')unset($data[$k][$kk]);
-					else $data[$k][$kk]=$vv;
-				}
-				if(!$data[$k])unset($data[$k]);
-			}
-			$data=array('list'=>$data);
-		} elseif ($in['ext'] == 'xlsx') {
-			$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
-			//$cacheFolder .= Path::encode($path).'/';//кэш			
-			$cacheFolder .= md5($path).'/';//кэш			
-			Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
-
-			$r = mkdir($cacheFolder);
-			if(!$r) {
-				echo '<pre>';
-				throw new \Exception('Не удалось создать папку для кэша '.$cacheFolder);
-			}
-
-			//разархивировать
-			$zip = new \ZipArchive();
-			$pathfs = Path::theme($path);
-
-			
-			if ((int) phpversion() > 6) {
-				$zipcacheFolder = Path::tofs($cacheFolder);
-				$archiveFile = Path::toutf($pathfs);
-				if (!empty($_SERVER['WINDIR'])) { //Только для Виндовс
-					$archiveFile = Path::toutf($archiveFile);
-					//$cacheFolder = Path::toutf($cacheFolder);
-				}
-			} else {
-				$zipcacheFolder = Path::tofs($cacheFolder); //Без кирилицы
-				$archiveFile = Path::tofs($pathfs);
-			}
-			$r = $zip->open($archiveFile);
-			if ($r===true) {
-				$zip->extractTo($zipcacheFolder);
-				$zip->close();
-
-				$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
-
-				$contents = $contents->si;
-
-				$workbook = simplexml_load_file($cacheFolder.'xl/workbook.xml');
-				$sheets = $workbook->sheets->sheet;
-
-				$handle = opendir($cacheFolder.'xl/worksheets/');
-				$i = 0;
-				$syms = array();
-				while ($file = readdir($handle)) {
-					if ($file{0} == '.') {
-						continue;
-					}
-					$src = $cacheFolder.'xl/worksheets/'.$file;
-					if (!is_file($src)) {
-						continue;
-					}
-					$files[] = $file;
-				}
-				closedir($handle);
-				natsort($files);
-
-				foreach ($files as $file) {
-					$src = $cacheFolder.'xl/worksheets/'.$file;
-
-					$list = $sheets[$i];
-					++$i;
-					$list = $list->attributes();
-					$list = (string) $list['name'];
-
-					$data[$list] = array();
-
-					$sheet = simplexml_load_file($cacheFolder.'xl/worksheets/'.$file);
-					$rows = $sheet->sheetData->row;
-					foreach ($rows as $row) {
-						$attr = $row->attributes();
-						$r = (string) $attr['r'];
-						$data[$list][$r] = array();
-						$cells = $row->c;
-
-						foreach ($cells as $cell) {
-							if (!$cell->v) {
-								continue;
-							}
-
-							$attr = $cell->attributes();
-							if ($attr['t'] == 's') {
-								$place = (integer) $cell->v;
-
-								if (isset($contents[$place]->r)) {
-									$value = '';
-									foreach ($contents[$place]->r as $con) {
-										$value .= $con->t;
-									}
-								} else {
-									$value = $contents[$place]->t;
-								}
-							} else {
-								$value = $cell->v;
-								$value = (double) $value;
-							}
-
-							$attr = $cell->attributes();
-							$c = (string) $attr['r'];//FA232
-							preg_match("/\D+/", $c, $c);
-							$c = $c[0];
-							$syms[$c] = true;
-							$data[$list][$r][$c] = (string) $value;
-						}
-					}
-				}
-
-				$syms = array_keys($syms);
-				natsort($syms);
-				/*usort($syms,function($a,$b){
-					$la=strlen($a);
-					$lb=strlen($b);
-					if($la>$lb)return 1;
-					if($la<$lb)return -1;
-					if($a>$b)return 1;
-					if($a<$b)return -1;
-					return 0;
-				});*/
-				$symbols = array();
-				foreach ($syms as $i => $s) {
-					$symbols[$s] = $i + 1;
-				}
-
-				foreach ($data as $list => $listdata) {
-					foreach ($listdata as $row => $rowdata) {
-						$data[$list][$row] = array();
-						foreach ($rowdata as $cell => $celldata) {
-							$data[$list][$row][$symbols[$cell]] = $celldata;
-						}
-						if (!$data[$list][$row]) {
-							unset($data[$list][$row]);
-						}//Пустые строки нам не нужны
-					}
-				}
-			}
-			// Если что-то пошло не так, возвращаем пустую строку
-			//return "";
-			//собрать данные
-		}
-
-		return $data;
-	}, array($path));
-	
-	return $data;
+	return Xlsx::parseAll($path);
 }
 function &xls_parse($path, $list = false)
 {
@@ -254,14 +63,21 @@ function &xls_parse($path, $list = false)
 	}
 	return $data[$list];
 }
-function &xls_make($path)
-{
-	$datamain = xls_parseAll($path);	
-	if (!$datamain) return $datamain;
 
-	$p = Load::srcInfo($path);
-	$title = $p['name'];
-	$title = Path::toutf($title);
+function &xls_make($path, $title = false)
+{
+
+	if (is_string($path)) {
+		$datamain = xls_parseAll($path);	
+		if (!$datamain) return $datamain;
+	} else {
+		$datamain = $path;
+	}
+	if (!$title) {
+		$p = Load::srcInfo($path);
+		$title = $p['name'];
+		$title = Path::toutf($title);
+	}
 
 	$parent = false;
 	$groups = &_xls_createGroup($title, $parent, 'book');
@@ -1297,9 +1113,12 @@ class Xlsx
 
 		return false;
 	}
-	public static function &get($src)
+	/**
+	 * Можно передавать путь или данные - двухмерный массив для обработки после parseAll
+	 **/
+	public static function &get($src, $title = false)
 	{
-		$data=xls_make($src);
+		$data=xls_make($src, $title);
 		
 		xls_processDescr($data);
 		
@@ -1343,9 +1162,200 @@ class Xlsx
 	{
 		return xls_parse($src);
 	}
-	public static function parseAll($src)
+	public static function parseAll($path)
 	{
-		return xls_parseAll($src);
+		$data = Cache::exec(array($path), 'xls_parseAll', function &($path) {
+
+			$file = Path::theme($path);
+
+			
+			$data = array();
+			if (!$file) {
+				return $data;
+			}
+
+			$in = Load::srcInfo($path);
+
+			
+			if ($in['ext'] == 'xls') {
+				require_once __DIR__.'/excel_parser/oleread.php';
+				require_once __DIR__.'/excel_parser/reader.php';
+
+				if (!$file) {
+					return $data;
+				}
+				
+				$d = new \Spreadsheet_Excel_Reader();
+				$d->setOutputEncoding('utf-8');
+				$d->read($file);
+
+				Each::forr($d->boundsheets, function &($v, $k) use (&$d, &$data) {
+					$data[$v['name']] = &$d->sheets[$k]['cells'];
+					$r = null;
+
+					return $r;
+				});
+			} elseif ($in['ext'] == 'csv') {
+				$handle = fopen('php://memory', 'w+');
+				fwrite($handle, Path::toutf(file_get_contents($file)));
+				rewind($handle);
+				$data = array(); //Массив будет хранить данные из csv
+				while (($line = fgetcsv($handle, 0, ";")) !== false) { //Проходим весь csv-файл, и читаем построчно. 3-ий параметр разделитель поля
+					$data[] = $line; //Записываем строчки в массив
+				}
+				fclose($handle);
+				foreach($data as $k=>$v){
+					foreach($data[$k] as $kk=>$vv){
+						$vv=trim($vv);
+						if($vv==='')unset($data[$k][$kk]);
+						else $data[$k][$kk]=$vv;
+					}
+					if(!$data[$k])unset($data[$k]);
+				}
+				$data=array('list'=>$data);
+			} elseif ($in['ext'] == 'xlsx') {
+				$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
+				//$cacheFolder .= Path::encode($path).'/';//кэш			
+				$cacheFolder .= md5($path).'/';//кэш			
+				Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
+
+				$r = mkdir($cacheFolder);
+				if(!$r) {
+					echo '<pre>';
+					throw new \Exception('Не удалось создать папку для кэша '.$cacheFolder);
+				}
+
+				//разархивировать
+				$zip = new \ZipArchive();
+				$pathfs = Path::theme($path);
+
+				
+				if ((int) phpversion() > 6) {
+					$zipcacheFolder = Path::tofs($cacheFolder);
+					$archiveFile = Path::toutf($pathfs);
+					if (!empty($_SERVER['WINDIR'])) { //Только для Виндовс
+						$archiveFile = Path::toutf($archiveFile);
+						//$cacheFolder = Path::toutf($cacheFolder);
+					}
+				} else {
+					$zipcacheFolder = Path::tofs($cacheFolder); //Без кирилицы
+					$archiveFile = Path::tofs($pathfs);
+				}
+				$r = $zip->open($archiveFile);
+				if ($r===true) {
+					$zip->extractTo($zipcacheFolder);
+					$zip->close();
+
+					$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
+
+					$contents = $contents->si;
+
+					$workbook = simplexml_load_file($cacheFolder.'xl/workbook.xml');
+					$sheets = $workbook->sheets->sheet;
+
+					$handle = opendir($cacheFolder.'xl/worksheets/');
+					$i = 0;
+					$syms = array();
+					while ($file = readdir($handle)) {
+						if ($file{0} == '.') {
+							continue;
+						}
+						$src = $cacheFolder.'xl/worksheets/'.$file;
+						if (!is_file($src)) {
+							continue;
+						}
+						$files[] = $file;
+					}
+					closedir($handle);
+					natsort($files);
+
+					foreach ($files as $file) {
+						$src = $cacheFolder.'xl/worksheets/'.$file;
+
+						$list = $sheets[$i];
+						++$i;
+						$list = $list->attributes();
+						$list = (string) $list['name'];
+
+						$data[$list] = array();
+
+						$sheet = simplexml_load_file($cacheFolder.'xl/worksheets/'.$file);
+						$rows = $sheet->sheetData->row;
+						foreach ($rows as $row) {
+							$attr = $row->attributes();
+							$r = (string) $attr['r'];
+							$data[$list][$r] = array();
+							$cells = $row->c;
+
+							foreach ($cells as $cell) {
+								if (!$cell->v) {
+									continue;
+								}
+
+								$attr = $cell->attributes();
+								if ($attr['t'] == 's') {
+									$place = (integer) $cell->v;
+
+									if (isset($contents[$place]->r)) {
+										$value = '';
+										foreach ($contents[$place]->r as $con) {
+											$value .= $con->t;
+										}
+									} else {
+										$value = $contents[$place]->t;
+									}
+								} else {
+									$value = $cell->v;
+									$value = (double) $value;
+								}
+
+								$attr = $cell->attributes();
+								$c = (string) $attr['r'];//FA232
+								preg_match("/\D+/", $c, $c);
+								$c = $c[0];
+								$syms[$c] = true;
+								$data[$list][$r][$c] = (string) $value;
+							}
+						}
+					}
+
+					$syms = array_keys($syms);
+					natsort($syms);
+					/*usort($syms,function($a,$b){
+						$la=strlen($a);
+						$lb=strlen($b);
+						if($la>$lb)return 1;
+						if($la<$lb)return -1;
+						if($a>$b)return 1;
+						if($a<$b)return -1;
+						return 0;
+					});*/
+					$symbols = array();
+					foreach ($syms as $i => $s) {
+						$symbols[$s] = $i + 1;
+					}
+
+					foreach ($data as $list => $listdata) {
+						foreach ($listdata as $row => $rowdata) {
+							$data[$list][$row] = array();
+							foreach ($rowdata as $cell => $celldata) {
+								$data[$list][$row][$symbols[$cell]] = $celldata;
+							}
+							if (!$data[$list][$row]) {
+								unset($data[$list][$row]);
+							}//Пустые строки нам не нужны
+						}
+					}
+				}
+				// Если что-то пошло не так, возвращаем пустую строку
+				//return "";
+				//собрать данные
+			}
+
+			return $data;
+		}, array($path));
+		
+		return $data;
 	}
 	public static function addFiles($root, &$pos, $dir = false)
 	{
