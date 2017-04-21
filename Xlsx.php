@@ -1010,18 +1010,19 @@ function &xls_init($path, $config = array())
 	if (@!is_array($config['Подготовить для адреса'])) {
 		$config['Подготовить для адреса'] = array('Артикул' => 'article','Производитель' => 'producer');
 	}
+
 	xls_processPossFS($data, $config['Подготовить для адреса']);//Заменяем левые символы в свойстве
 
 
 	if (empty($config['Обязательные колонки'])) {
 		$config['Обязательные колонки'] = array('article','producer');
 	}
+
 	xls_runGroups($data, function &(&$group) use ($config) {
 		$r = null; 
-		if (empty($group['data'])) {
-			return $r;
-		}
-		for ($i = 0, $l = sizeof($group['data']); $i < $l; ++$i) {
+		if (empty($group['data'])) return $r;
+		$group['data'] = array_values($group['data']);
+		for ($i = sizeof($group['data']); $i >= 0 ; $i--) {
 			foreach ($config['Обязательные колонки'] as $propneed) {
 				if (empty($group['data'][$i][$propneed])) {
 					unset($group['data'][$i]);
@@ -1032,8 +1033,7 @@ function &xls_init($path, $config = array())
 		$group['data'] = array_values($group['data']);
 		return $r;
 	});
-
-	if (@!$config['Известные колонки']) {
+	if (empty($config['Известные колонки'])) {
 		$config['Известные колонки'] = array('Производитель','Наименование','Описание','Артикул');
 	}
 	$config['Известные колонки'][] = 'parent';
@@ -1041,7 +1041,7 @@ function &xls_init($path, $config = array())
 		$config['Известные колонки'][] = $v;
 		$config['Известные колонки'][] = $k;
 	}
-	if (@$config['more']) {
+	if (!empty($config['more'])) {
 		xls_processPossMore($data, $config['Известные колонки']);
 		//позициям + more
 	}
@@ -1162,7 +1162,7 @@ class Xlsx
 	{
 		return xls_parse($src);
 	}
-	public static function parseAll($path)
+	public static function &parseAll($path)
 	{
 		$data = Cache::exec(array($path), 'xls_parseAll', function &($path) {
 
