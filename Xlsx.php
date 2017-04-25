@@ -140,7 +140,7 @@ function &xls_make($path, $title = false)
 					$isnewgroup = !$roww[$pgpy];
 				}
 				if ($isnewgroup) {
-					if ($wasdata && @$argr[0]['parent'] && $argr[0]['parent']['type'] != 'book') {
+					if ($wasdata && !empty($argr[0]['parent']) && $argr[0]['parent']['type'] != 'book') {
 						$argr = array(&$argr[0]['parent']);//Если уже были данные то поднимаемся наверх
 					}
 					$g = array();
@@ -163,7 +163,7 @@ function &xls_make($path, $title = false)
 					if (!empty($row[$first_index]) && $count === 1 && strlen($row[$first_index]) === 1) {
 						//подъём на уровень выше
 						if($argr[0]['parent']['type'] != 'book') {
-							if (@$argr[0]['parent']) {
+							if (!empty($argr[0]['parent'])) {
 								$argr = array(&$argr[0]['parent']);
 								//echo '<b>'.$group['title'].'</b><br>';
 							}
@@ -277,7 +277,7 @@ function xls_processPoss(&$data, $ishead = false)
 
 	xls_runGroups($data, function &(&$data) use ($ishead) {
 		$r = null;
-		if (@$data['head']) {
+		if (!empty($data['head'])) {
 			$head = &$data['head'];
 		} else {
 			return $r; //Значит и данных нет
@@ -289,10 +289,9 @@ function xls_processPoss(&$data, $ishead = false)
 
 			Each::foro($pos, function &($propvalue, $i) use (&$p, &$head) {
 				$r = null;
-				$propname = @$head[$i];
-				if (!$propname) {
-					return $r;
-				}
+				if (empty($head[$i])) return $r;
+				$propname = $head[$i];
+				
 				if ($propname{0} == '.') {
 					return $r;
 				}//Колонки с точкой скрыты
@@ -451,10 +450,15 @@ function xls_merge(&$gr, &$addgr)
 		return $r;
 	});
 
-	if (@$gr['tparam']) {
-		$gr['tparam'] .= ','.$addgr['tparam'];
+	if (!empty($addgr['tparam'])) {
+		$tparam = $addgr['tparam'];
 	} else {
-		$gr['tparam'] = @$addgr['tparam'];
+		$tparam = '';
+	}
+	if (!empty($gr['tparam'])) {
+		$gr['tparam'] .= ','.$tparam;
+	} else {
+		$gr['tparam'] = $tparam;
 	}
 	for ($i = 0, $l = sizeof($addgr['data']); $i < $l; $i++) {
 		$pos = &$addgr['data'][$i];
@@ -560,7 +564,9 @@ function xls_processDescr(&$data)
 		$descr = array();
 		Each::forr($gr['descr'], function &($row) use (&$descr) {
 			$row = array_values($row);
-			@$descr[$row[0]] = $row[1];
+			if (empty($row[1])) $row[1] = '';
+			if (empty($row[0])) $row[0] = '';
+			$descr[$row[0]] = $row[1];
 			$r = null;
 			return $r;
 		});
@@ -605,11 +611,11 @@ function xls_processClass(&$data, $clsname, $musthave = false)
 		if ($data['type'] == 'book' && $musthave) {
 			$data['miss'] = true;
 			$clsvalue = Path::encode($data['title']);
-		} elseif ($data['type'] == 'list' && @$data['descr'][$clsname]) {
+		} elseif ($data['type'] == 'list' && !empty($data['descr'][$clsname])) {
 			//Если в descr указан класс то имя листа игнорируется иначе это будет группой каталога, а классом будет считаться имя книги
 			$data['miss'] = true;//Если у листа есть позиции без группы он не расформировывается
 			$clsvalue = Path::encode($data['descr'][$clsname]);
-		} elseif ($data['type'] == 'row' && @$data['descr'][$clsname]) {
+		} elseif ($data['type'] == 'row' && !empty($data['descr'][$clsname])) {
 			$clsvalue = Path::encode($data['descr'][$clsname]);
 		}
 		Each::forr($data['data'], function &(&$pos) use ($clsname, $clsvalue) {
@@ -644,7 +650,7 @@ function xls_processGroupMiss(&$data)
 	}
 
 	xls_runGroups($data, function &(&$gr, $i, &$group) {
-		if (@$gr['miss'] && @$gr['parent']) {
+		if (!empty($gr['miss']) && !empty($gr['parent'])) {
 			//Берём детей missгруппы и переносим их в родительскую
 			Each::forr($gr['childs'], function &(&$g) use (&$gr) {
 				$g['parent'] = &$gr['parent'];
@@ -769,13 +775,13 @@ function xls_pageList(&$poss, $page, $count, $sort, $numbers)
 }
 function xls_preparePosFiles(&$pos, $pth, $props = array())
 {
-	if (!@$pos['images']) {
+	if (empty($pos['images'])) {
 		$pos['images'] = array();
 	}
-	if (!@$pos['texts']) {
+	if (empty($pos['texts'])) {
 		$pos['texts'] = array();
 	}
-	if (!@$pos['files']) {
+	if (empty($pos['files'])) {
 		$pos['files'] = array();
 	}
 	$dir = array();
@@ -1007,7 +1013,7 @@ function &xls_init($path, $config = array())
 		$r = null; return $r;
 	});
 
-	if (@!is_array($config['Подготовить для адреса'])) {
+	if (empty($config['Подготовить для адреса'])) {
 		$config['Подготовить для адреса'] = array('Артикул' => 'article','Производитель' => 'producer');
 	}
 

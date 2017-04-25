@@ -38,9 +38,6 @@ class oleread
 {
 	public $data = '';
 
-	public function OLERead()
-	{
-	}
 
 	public function read($sFileName)
 	{

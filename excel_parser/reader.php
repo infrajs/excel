@@ -259,7 +259,7 @@ class Spreadsheet_Excel_Reader
 	 *
 	 * Some basic initialisation
 	 */
-	public function Spreadsheet_Excel_Reader()
+	public function __construct()
 	{
 		$this->_ole = new OLERead();
 		$this->setUTFEncoder('iconv');
@@ -625,7 +625,7 @@ class Spreadsheet_Excel_Reader
 								}
 								//echo '.other.';
 								//echo "\ndate-time=$formatstr=\n";
-								if (@$formatstr) {
+								if (!empty($formatstr)) {
 									if (preg_match("/[^hmsday\/\-:\s]/i", $formatstr) == 0) { // found day and time format
 									$isdate = true;
 										$formatstr = str_replace('mm', 'i', $formatstr);
