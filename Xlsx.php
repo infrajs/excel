@@ -1170,7 +1170,7 @@ class Xlsx
 	}
 	public static function &parseAll($path)
 	{
-		$data = Cache::exec(array($path), 'xls_parseAll', function &($path) {
+		$data = Cache::execF(array($path), 'xls_parseAll', function &($path) {
 
 			$file = Path::theme($path);
 
