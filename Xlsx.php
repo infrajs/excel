@@ -1193,6 +1193,7 @@ class Xlsx
 				
 				$d = new \Spreadsheet_Excel_Reader();
 				$d->setOutputEncoding('utf-8');
+				//$d->setUTFEncoder('mb');
 				$d->read($file);
 
 				Each::forr($d->boundsheets, function &($v, $k) use (&$d, &$data) {
