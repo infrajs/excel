@@ -1436,14 +1436,17 @@ class Xlsx
 			$dir = Path::pretty($dir);
 			$name = Path::toutf($dir.$name);
 			
+			
 			$im = array('png', 'gif', 'jpg');
 			$te = array('html', 'tpl', 'mht', 'docx');
+			$ignore = array('db', 'json');
+
 			if (in_array($ext, $im)) {
 				$pos['images'][] = $name;
 			} else if (in_array($ext, $te)) {
 				$pos['texts'][] = $name;
 			} else {
-				if ($ext != 'db') {
+				if (!in_array($ext, $ignore)) {
 					$pos['files'][] = $name;
 				}
 			}
