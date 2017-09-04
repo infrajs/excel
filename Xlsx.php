@@ -1135,6 +1135,18 @@ class Xlsx
 		
 		xls_processPoss($data, true);
 
+		Xlsx::runGroups($data, function &(&$data, $i, &$group) {
+			//path
+			$r = null;
+			if (!$group) {
+				$data['path'] = array();
+			} else {
+				$data['path'] = $group['path'];
+				$data['path'][] = $data['title'];
+			}
+			return $r;
+		});
+		
 		Xlsx::runGroups($data, function &(&$gr) {
 			unset($gr['parent']);
 			$r = null; return $r;
