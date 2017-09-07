@@ -70,18 +70,20 @@ function &xls_make($path, $title = false)
 	if (is_string($path)) {
 		$datamain = xls_parseAll($path);	
 		if (!$datamain) return $datamain;
+		if (!$title) {
+			$p = Load::srcInfo($path);
+			$title = $p['name'];
+			$title = Path::toutf($title);
+		}
 	} else {
 		$datamain = $path;
 	}
-	if (!$title) {
-		$p = Load::srcInfo($path);
-		$title = $p['name'];
-		$title = Path::toutf($title);
-	}
+	
 
 	$parent = false;
-	$groups = &_xls_createGroup($title, $parent, 'book');
 
+	$groups = &_xls_createGroup($title, $parent, 'book');
+	
 	foreach ($datamain as $title => $data) {
 		//Бежим по листам
 		if ($title{0} === '.') continue; //Не применяем лист у которого точка в начале имени
@@ -1121,15 +1123,30 @@ class Xlsx
 	}
 	/**
 	 * Можно передавать путь или данные - двухмерный массив для обработки после parseAll
+	 * почти Xlxs::make
 	 **/
 	public static function &get($src, $title = false)
 	{
-		$data=xls_make($src, $title);
+
+		$data = xls_make($src, $title);
+		
 		
 		xls_processDescr($data);
 		
 		xls_processPoss($data, true);
 
+		Xlsx::runGroups($data, function &(&$data, $i, &$group) {
+			//path
+			$r = null;
+			if (!$group) {
+				$data['path'] = array();
+			} else {
+				$data['path'] = $group['path'];
+				$data['path'][] = $data['title'];
+			}
+			return $r;
+		});
+		
 		Xlsx::runGroups($data, function &(&$gr) {
 			unset($gr['parent']);
 			$r = null; return $r;
