@@ -184,7 +184,7 @@ function &xls_runPoss(&$data, $callback, $back=false)
 		$r = null;
 		if(empty($group['data'])) return $r;
 		foreach ($group['data'] as $i => &$pos){
-			$r = &$callback($pos, $i, $group);
+			$r = $callback($pos, $i, $group);
 			if (!is_null($r)) return $r;
 		}
 		return $r;
