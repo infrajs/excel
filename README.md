@@ -37,6 +37,8 @@ $data = Xlsx::init('vendor/infrajs/excel/test.xlsx', $option);
 
 ```
 
+Посте установки доступен REST-сервис с настроенным infrajs/router доступен по адресу ```/-excel/get/~moroz/otzivi.xlsx``` в папке с даными data должен быть файл moroz/otzivi.xlsx. Вместо ```get``` также может быть ```init```, ```make```.
+
 Опции по умолчанию
 ```php
 $option = array(
