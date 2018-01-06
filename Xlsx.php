@@ -1386,15 +1386,15 @@ class Xlsx
 		$props=array('producer','article');
 		
 
-		if (!isset($pos['images'])) {
+		//if (!isset($pos['images'])) {
 			$pos['images'] = array();
-		}
-		if (!isset($pos['texts'])) {
+		//}
+		//if (!isset($pos['texts'])) {
 			$pos['texts'] = array();
-		}
-		if (!isset($pos['files'])) {
+		//}
+		//if (!isset($pos['files'])) {
 			$pos['files'] = array();
-		}
+		//}
 		if (!$dir) {
 			$dir = array();
 			$pth=Path::resolve($root);
@@ -1464,14 +1464,14 @@ class Xlsx
 				$pos['texts'][] = $name;
 			} else {
 				if (!in_array($ext, $ignore)) {
-					$pos['files'][] = $name;
+					$pos['files'][] = Load::srcInfo($dir.$name);
 				}
 			}
 			return $r;
 		});
 
-		$pos['images'] = array_unique($pos['images']);
-		$pos['texts'] = array_unique($pos['texts']);
-		$pos['files'] = array_unique($pos['files']);
+		//$pos['images'] = array_unique($pos['images']);
+		//$pos['texts'] = array_unique($pos['texts']);
+		//$pos['files'] = array_unique($pos['files']);
 	}
 }
