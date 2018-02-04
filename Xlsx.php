@@ -78,7 +78,7 @@ function &xls_make($path, $title = false)
 	} else {
 		$datamain = $path;
 	}
-	
+
 
 	$parent = false;
 
@@ -105,6 +105,8 @@ function &xls_make($path, $title = false)
 			$count = 0;
 			//$group=&$argr[0];//Группа может появится среди данных в листах
 			//echo $group['title'].'<br>';
+			//if(!$row) continue;
+			
 			foreach ($row as $cell) {
 				if ($cell) $count++;
 			}
@@ -203,6 +205,7 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 		//Когда начинается с двоеточия
 		array_shift($t);
 		$title = implode(':', $t);
+		$first_index = null;
 		foreach ($parent['descr'] as $first_index => $first_value) {
 			break;
 		}
@@ -288,35 +291,33 @@ function xls_processPoss(&$data, $ishead = false)
 		Each::forr($data['data'], function &(&$pos, $i, &$group) use (&$head, &$data) {
 
 			$p = array();
-
-			Each::foro($pos, function &($propvalue, $i) use (&$p, &$head) {
-				$r = null;
+			
+			foreach($pos as $i=>$propvalue) {
 				if (empty($head[$i])) return $r;
 				$propname = $head[$i];
 				
 				if ($propname{0} == '.') {
-					return $r;
+					continue;
 				}//Колонки с точкой скрыты
 				if ($propvalue == '') {
-					return $r;
+					continue;
 				}
 				if ($propvalue{0} == '.') {
-					return $r;
+					continue;
 				}//Позиции у которых параметры начинаются с точки скрыты
 
 				$propvalue = trim($propvalue);
 				//$propvalue=preg_replace('/\s+$/','',$propvalue);
 				//$propvalue=preg_replace('/^\s+/','',$propvalue);
 				if (!$propname) {
-					return $r;
+					continue;
 				}
 				$p[$propname] = $propvalue;
-				
-
-				return $r;
-			});
+			}
 			$p['parent'] = &$data;//Рекурсия
-			$group[$i] = &$p;
+			$pos = $p;
+			$group[$i] = &$pos;
+
 
 			return $r;
 		});
@@ -595,7 +596,7 @@ function xls_processGroupCalculate(&$data)
 
 function xls_processClassEmpty(&$data, $clsname)
 {
-	xls_runGroups($data, function (&$gr) use ($clsname) {
+	Xlsx::runGroups($data, function (&$gr) use ($clsname) {
 		$poss = array();
 		for ($i = 0, $l = sizeof($gr['data']); $i < $l; ++$i) {
 			if (!isset($gr['data'][$i][$clsname]) || !$gr['data'][$i][$clsname]) {
@@ -609,6 +610,7 @@ function xls_processClassEmpty(&$data, $clsname)
 }
 function xls_processClass(&$data, $clsname, $musthave = false)
 {
+
 	$run = function (&$data, $run, $clsname, $musthave, $clsvalue = '') {
 		if ($data['type'] == 'book' && $musthave) {
 			$data['miss'] = true;
@@ -620,17 +622,14 @@ function xls_processClass(&$data, $clsname, $musthave = false)
 		} elseif ($data['type'] == 'row' && !empty($data['descr'][$clsname])) {
 			$clsvalue = Path::encode($data['descr'][$clsname]);
 		}
-		Each::forr($data['data'], function &(&$pos) use ($clsname, $clsvalue) {
-			if (!isset($pos[$clsname])) {
-				$pos[$clsname] = $clsvalue;//У позиции будет установлен ближайший класс
+		foreach ($data['data'] as $i => $pos) {
+			if (!isset($data['data'][$i][$clsname])) {
+				$data['data'][$i][$clsname] = $clsvalue;//У позиции будет установлен ближайший класс
 			} else {
-				$pos[$clsname] = Path::encode($pos[$clsname]);
+				$data['data'][$i][$clsname] = Path::encode($data['data'][$i][$clsname]);
 			}
 			$r = null;
-
-			return $r;
-		});
-
+		};	
 		Each::forr($data['childs'], function &(&$data) use ($run, $clsvalue, $clsname, $musthave) {
 			$run($data, $run, $clsname, $musthave, $clsvalue);
 			$r = null;
@@ -639,8 +638,6 @@ function xls_processClass(&$data, $clsname, $musthave = false)
 		});
 	};
 	$run($data, $run, $clsname, $musthave);
-
-	return $data;
 }
 function xls_processGroupMiss(&$data)
 {
@@ -880,7 +877,7 @@ function &xls_init($path, $config = array())
 	//Возвращает полностью гототовый массив
 	//if(Each::isAssoc($path)===true)return $path;//Это если переданы уже готовые данные вместо адреса до файла данных
 
-	$parent = false;
+	
 
 	$ar = array();
 	$isonefile = true;
@@ -916,191 +913,13 @@ function &xls_init($path, $config = array())
 			$config['root'] = 'Каталог';
 		}
 	}
-	
-	$data = _xls_createGroup($config['root'], $parent, 'set');//Сделали группу в которую объединяются все остальные
-	$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
-
-	Each::forr($ar, function &($path) use (&$data) {
+	Each::forr($ar, function &(&$path) use (&$data) {
 		$r = null;
-		$d = &xls_make($path);
-		if (!$d) return $r;
-		$d['parent'] = &$data;
-		$data['childs'][] = &$d;
+		$path = xls_make($path);
 		return $r;
 	});
 	
-	
-	//Реверс записей на листе
-	if (!isset($config['listreverse'])) $config['listreverse'] = false;
-	if ($config['listreverse']) {
-		foreach($data['childs'] as $book => $v) {
-			foreach($data['childs'][$book]['childs'] as $list => $vv) {
-				$data['childs'][$book]['childs'][$list]['data'] = array_reverse($data['childs'][$book]['childs'][$list]['data']);
-			}
-		}
-	}
-
-	
-	xls_processDescr($data);
-
-	if (!isset($config['Сохранить head'])) $config['Сохранить head'] = true;
-	
-	xls_processPoss($data, $config['Сохранить head']);
-
-	if (!isset($config['Переименовать колонки'])) $config['Переименовать колонки'] = array();	
-	if (!isset($config['Удалить колонки'])) $config['Удалить колонки'] = array();
-	if (!isset($config['more'])) $config['more'] = false;
-	
-
-	xls_runPoss($data, function &(&$pos) use (&$config) {
-		$r = null;
-		foreach ($config['Удалить колонки'] as $k) {
-			if (isset($pos[$k])) unset($pos[$k]);
-		}
-		foreach ($config['Переименовать колонки'] as $k => $v) {
-			if (isset($pos[$k])) {
-				$pos[$v] = $pos[$k];
-				unset($pos[$k]);
-			}
-		}
-		return $r;
-	});
-
-	if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
-
-
-	if ($config['Имя файла'] == 'Производитель') {
-		xls_processClass($data, 'Производитель', true);
-	}//Должен быть обязательно miss раставляется
-
-	xls_runPoss($data, function &(&$pos, $i, &$group) {
-		// пустая позиция
-		$r = null;
-		if (sizeof($pos) == 2) { //group_title Производитель
-			unset($group['data'][$i]);
-			return $r;
-		}
-		return $r;
-	});
-
-	
-	xls_processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
-
-	xls_processGroupMiss($data);//Группы miss(производители) расформировываются
-
-
-//xls_processGroupCalculate($data);//Добавляются свойства count groups сколько позиций и групп группы должны быть уже определены... почищены...				
-
-	xls_runGroups($data, function &(&$gr, $i, &$parent) {
-		//Имя листа или файла короткое и настоящие имя группы прячется в descr. но имя листа или файла также остаётся в title
-		if(!empty($gr['descr']['Наименование'])){
-			$gr['name'] = $gr['descr']['Наименование'];//name крутое правильное Наименование группы
-		}
-		if (empty($gr['name'])) {
-			$gr['name'] = $gr['title'];
-		}//title то как называется файл или какое имя используется в адресной строке
-		if (empty($gr['tparam'])) {
-			$gr['tparam'] = $parent['tparam'];
-		}//tparam наследуется Оборудование:что-то, что-то
-
-		if (!empty($gr['descr']['Производитель'])) {
-			for ($i = 0, $il = sizeof($gr['data']); $i < $il; ++$i) {
-				if (!empty($gr['data'][$i]['Производитель'])) {
-					continue;
-				}
-				$gr['data'][$i]['Производитель'] = $gr['descr']['Производитель'];
-				$gr['data'][$i]['producer'] = Path::encode($gr['descr']['Производитель']);
-			}
-		}
-		$r = null; return $r;
-	});
-
-	if (empty($config['Подготовить для адреса'])) {
-		$config['Подготовить для адреса'] = array('Артикул' => 'article','Производитель' => 'producer');
-	}
-
-	xls_processPossFS($data, $config['Подготовить для адреса']);//Заменяем левые символы в свойстве
-
-
-	if (empty($config['Обязательные колонки'])) {
-		$config['Обязательные колонки'] = array('article','producer');
-	}
-
-	xls_runGroups($data, function &(&$group) use ($config) {
-		$r = null; 
-		if (empty($group['data'])) return $r;
-		$group['data'] = array_values($group['data']);
-		for ($i = sizeof($group['data']); $i >= 0 ; $i--) {
-			foreach ($config['Обязательные колонки'] as $propneed) {
-				if (empty($group['data'][$i][$propneed])) {
-					unset($group['data'][$i]);
-					break;
-				}
-			}
-		}
-		$group['data'] = array_values($group['data']);
-		return $r;
-	});
-	if (empty($config['Известные колонки'])) {
-		$config['Известные колонки'] = array('Производитель','Наименование','Описание','Артикул');
-	}
-	$config['Известные колонки'][] = 'parent';
-	foreach ($config['Подготовить для адреса'] as $k => $v) {
-		$config['Известные колонки'][] = $v;
-		$config['Известные колонки'][] = $k;
-	}
-	if (!empty($config['more'])) {
-		xls_processPossMore($data, $config['Известные колонки']);
-		//позициям + more
-	}
-	xls_runGroups($data, function &(&$group) {
-		$group['group'] = $group['parent']['title'];
-		if (!empty($group['descr']['Наименование'])) {
-			$group['Группа'] = $group['descr']['Наименование'];
-		} else {
-			$group['Группа'] = $group['title'];
-		}
-		$r = null; return $r;
-	});
-	xls_runPoss($data, function &(&$pos, $i, $group) {
-		$r = null;
-		$pos['group'] = $group['title'];
-		$pos['Группа'] = $group['Группа'];
-		return $r;
-	});
-	
-
-	if (empty($config['Ссылка parent'])) {
-		xls_runGroups($data, function &(&$group) {
-			$r = null;
-			unset($group['parent']);
-			return $r;
-		});
-		xls_runPoss($data, function &(&$pos, $i) {
-			$r = null;
-			unset($pos['parent']);
-			return $r;
-		});
-	}
-
-	xls_runGroups($data, function &(&$data, $i, &$group) {
-		//path
-		$r = null;
-		if (!$group) {
-			$data['path'] = array();
-		} else {
-			$data['path'] = $group['path'];
-			$data['path'][] = $data['title'];
-		}
-		return $r;
-	});
-	xls_runPoss($data, function &(&$pos, $i, &$group) {
-		$r = null;
-		$pos['path'] = $group['path'];
-		return $r;
-	});
-
-	return $data;
+	return Xlsx::initData($ar, $config);
 };
 class Xlsx
 {
@@ -1110,6 +929,225 @@ class Xlsx
 	public static $conf=array(
 		'cache'=>'!xlsx/'
 	);
+	public static function merge($ar) {
+		$parent = false;
+		$data = _xls_createGroup($ar[0]['title'], $parent, 'set');
+		$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
+		Each::forr($ar, function &($d) use (&$data) {
+			$r = null;
+			if (!$d) return $r;
+			$d['parent'] = &$data;
+			$data['childs'][] = &$d;
+			return $r;
+		});
+		xls_processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
+
+		xls_processGroupMiss($data);//Группы miss(производители) расформировываются
+
+		Xlsx::prepareMetaGroup($data);
+		return $data;
+	}
+	public static function &initData($ar, $config = array()) {
+		if (empty($config['root'])) {
+			$config['root'] = 'Каталог';
+		}
+		$parent = false;
+		$data = _xls_createGroup($config['root'], $parent, 'set');//Сделали группу в которую объединяются все остальные
+		$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
+
+
+
+		Each::forr($ar, function &($d) use (&$data) {
+			$r = null;
+			if (!$d) return $r;
+			$d['parent'] = &$data;
+			$data['childs'][] = &$d;
+			return $r;
+		});
+
+		//Реверс записей на листе
+		if (!isset($config['listreverse'])) $config['listreverse'] = false;
+		if ($config['listreverse']) {
+			foreach($data['childs'] as $book => $v) {
+				foreach($data['childs'][$book]['childs'] as $list => $vv) {
+					$data['childs'][$book]['childs'][$list]['data'] = array_reverse($data['childs'][$book]['childs'][$list]['data']);
+				}
+			}
+		}
+		
+		xls_processDescr($data);
+
+		if (!isset($config['Сохранить head'])) $config['Сохранить head'] = true;
+		
+		xls_processPoss($data, $config['Сохранить head']);
+		
+		if (!isset($config['Переименовать колонки'])) $config['Переименовать колонки'] = array();	
+		if (!isset($config['Удалить колонки'])) $config['Удалить колонки'] = array();
+		if (!isset($config['more'])) $config['more'] = false;
+		
+
+		xls_runPoss($data, function &(&$pos) use (&$config) {
+			$r = null;
+			foreach ($config['Удалить колонки'] as $k) {
+				if (isset($pos[$k])) unset($pos[$k]);
+			}
+			foreach ($config['Переименовать колонки'] as $k => $v) {
+				if (isset($pos[$k])) {
+					$pos[$v] = $pos[$k];
+					unset($pos[$k]);
+				}
+			}
+			return $r;
+		});
+
+		if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
+
+
+		if ($config['Имя файла'] == 'Производитель') {
+			xls_processClass($data, 'Производитель', true);
+		}//Должен быть обязательно miss раставляется
+
+		xls_runPoss($data, function &(&$pos, $i, &$group) {
+			// пустая позиция
+			$r = null;
+			if (sizeof($pos) == 2) { //group_title Производитель
+				unset($group['data'][$i]);
+				return $r;
+			}
+			return $r;
+		});
+
+		
+		xls_processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
+
+		xls_processGroupMiss($data);//Группы miss(производители) расформировываются
+
+
+	//xls_processGroupCalculate($data);//Добавляются свойства count groups сколько позиций и групп группы должны быть уже определены... почищены...				
+
+		xls_runGroups($data, function &(&$gr, $i, &$parent) {
+			
+			if (empty($gr['tparam'])) {
+				$gr['tparam'] = $parent['tparam'];
+			}//tparam наследуется Оборудование:что-то, что-то
+
+			if (!empty($gr['descr']['Производитель'])) {
+				for ($i = 0, $il = sizeof($gr['data']); $i < $il; ++$i) {
+					if (!empty($gr['data'][$i]['Производитель'])) {
+						continue;
+					}
+					$gr['data'][$i]['Производитель'] = $gr['descr']['Производитель'];
+					$gr['data'][$i]['producer'] = Path::encode($gr['descr']['Производитель']);
+				}
+			}
+			$r = null; return $r;
+		});
+
+		if (empty($config['Подготовить для адреса'])) {
+			$config['Подготовить для адреса'] = array('Артикул' => 'article','Производитель' => 'producer');
+		}
+
+		xls_processPossFS($data, $config['Подготовить для адреса']);//Заменяем левые символы в свойстве
+
+
+		if (empty($config['Обязательные колонки'])) {
+			$config['Обязательные колонки'] = array('article','producer');
+		}
+
+		xls_runGroups($data, function &(&$group) use ($config) {
+			$r = null; 
+			if (empty($group['data'])) return $r;
+			$group['data'] = array_values($group['data']);
+			for ($i = sizeof($group['data']); $i >= 0 ; $i--) {
+				foreach ($config['Обязательные колонки'] as $propneed) {
+					if (empty($group['data'][$i][$propneed])) {
+						unset($group['data'][$i]);
+						break;
+					}
+				}
+			}
+			$group['data'] = array_values($group['data']);
+			return $r;
+		});
+		if (empty($config['Известные колонки'])) {
+			$config['Известные колонки'] = array('Производитель','Наименование','Описание','Артикул');
+		}
+		$config['Известные колонки'][] = 'parent';
+		foreach ($config['Подготовить для адреса'] as $k => $v) {
+			$config['Известные колонки'][] = $v;
+			$config['Известные колонки'][] = $k;
+		}
+		if (!empty($config['more'])) {
+			xls_processPossMore($data, $config['Известные колонки']);
+			//позициям + more
+		}
+
+		Xlsx::prepareMetaGroup($data);
+		
+
+		if (empty($config['Ссылка parent'])) {
+			xls_runGroups($data, function &(&$group) {
+				$r = null;
+				unset($group['parent']);
+				return $r;
+			});
+			xls_runPoss($data, function &(&$pos, $i) {
+				$r = null;
+				unset($pos['parent']);
+				return $r;
+			});
+		}
+		return $data;
+	}
+	public static function prepareMetaGroup(&$data) {
+		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
+			//Имя листа или файла короткое и настоящие имя группы прячется в descr. но имя листа или файла также остаётся в title
+			$r = null;
+			if(!empty($gr['descr']['Наименование'])){
+				$gr['name'] = $gr['descr']['Наименование'];//name крутое правильное Наименование группы
+			}
+			if (empty($gr['name'])) {
+				$gr['name'] = $gr['title'];
+			}//title то как называется файл или какое имя используется в адресной строке
+			return $r;
+		});
+		Xlsx::runGroups($data, function &(&$group, $i, $parent) {
+			if ($parent) {
+				$group['group'] = $parent['title'];
+			} else {
+				$group['group'] = false;
+			}
+			if (!empty($group['descr']['Наименование'])) {
+				$group['Группа'] = $group['descr']['Наименование'];
+			} else {
+				$group['Группа'] = $group['title'];
+			}
+			$r = null; return $r;
+		});
+		xls_runPoss($data, function &(&$pos, $i, $group) {
+			$r = null;
+			$pos['group'] = $group['title'];
+			$pos['Группа'] = $group['Группа'];
+			return $r;
+		});
+		
+		xls_runGroups($data, function &(&$data, $i, &$group) {
+			//path
+			$r = null;
+			if (!$group) {
+				$data['path'] = array();
+			} else {
+				$data['path'] = $group['path'];
+				$data['path'][] = $data['title'];
+			}
+			return $r;
+		});
+		xls_runPoss($data, function &(&$pos, $i, &$group) {
+			$r = null;
+			$pos['path'] = $group['path'];
+			return $r;
+		});
+	}
 	public static function isParent(&$layer, &$parent)
 	{
 		while ($layer) {
@@ -1184,6 +1222,10 @@ class Xlsx
 	public static function parse($src, $list = false)
 	{
 		return xls_parse($src);
+	}
+	public static function make($path, $title = false)
+	{
+		return xls_make($path, $title);
 	}
 	public static function &parseAll($path)
 	{
