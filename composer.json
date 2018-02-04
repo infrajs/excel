@@ -2,7 +2,6 @@
 	"name": "infrajs/excel",
 	"homepage":"https://github.com/infrajs/excel",
 	"description": "Parser xlsx",
-	"license": "GPL3",
 	"autoload": {
 		"psr-4": { "infrajs\\excel\\": "/" }
 	},
