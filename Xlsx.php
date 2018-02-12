@@ -1467,16 +1467,17 @@ class Xlsx
 		$props=array('producer','article');
 		
 
-		//if (!isset($pos['images'])) {
-			$pos['images'] = array();
-		//}
-		//if (!isset($pos['texts'])) {
-			$pos['texts'] = array();
-		//}
-		//if (!isset($pos['files'])) {
-			$pos['files'] = array();
-		//}
+
 		if (!$dir) {
+            //if (!isset($pos['images'])) {
+            $pos['images'] = array();
+            //}
+            //if (!isset($pos['texts'])) {
+            $pos['texts'] = array();
+            //}
+            //if (!isset($pos['files'])) {
+            $pos['files'] = array();
+            //}
 			$dir = array();
 			$pth=Path::resolve($root);
 			if (Each::forr($props, function &($name) use (&$dir, &$pos) {
