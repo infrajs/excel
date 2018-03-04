@@ -5,8 +5,9 @@ use infrajs\path\Path;
 use infrajs\load\Load;
 use infrajs\each\Each;
 use infrajs\each\Fix;
+use infrajs\cache\Cache as OldCache;
 use infrajs\config\Config;
-use infrajs\cache\Cache;
+use akiyatkin\boo\Cache;
 use infrajs\sequence\Sequence;
 /*
 * xls методы для работы с xls документами. 
@@ -85,6 +86,7 @@ function &xls_make($path, $title = false)
 	$groups = &_xls_createGroup($title, $parent, 'book');
 	
 	foreach ($datamain as $title => $data) {
+		if (!$data) continue;
 		//Бежим по листам
 		if ($title{0} === '.') continue; //Не применяем лист у которого точка в начале имени
 		$argr = array();//Чтобы была возможность определить следующую группу и при этом работать со ссылкой и не переопределять предыдущую
@@ -1268,7 +1270,7 @@ class Xlsx
 	}
 	public static function &parseAll($path)
 	{
-		$data = Cache::execF(array($path), 'xls_parseAll', function &($path) {
+		$data = Cache::exec('Разбор табличных данных', function &($path) {
 
 			$file = Path::theme($path);
 
@@ -1280,7 +1282,7 @@ class Xlsx
 
 			$in = Load::srcInfo($path);
 
-			
+			Cache::setTitle($path);
 			if ($in['ext'] == 'xls') {
 				require_once __DIR__.'/excel_parser/oleread.php';
 				require_once __DIR__.'/excel_parser/reader.php';
@@ -1322,7 +1324,7 @@ class Xlsx
 				$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
 				//$cacheFolder .= Path::encode($path).'/';//кэш			
 				$cacheFolder .= md5($path).'/';//кэш			
-				Cache::fullrmdir($cacheFolder, true);//удалить старый кэш
+				OldCache::fullrmdir($cacheFolder, true);//удалить старый кэш
 
 				$r = mkdir($cacheFolder);
 				if(!$r) {
@@ -1456,9 +1458,8 @@ class Xlsx
 				//return "";
 				//собрать данные
 			}
-
 			return $data;
-		}, array($path));
+		}, array($path), ['akiyatkin\boo\Cache','getModifiedTime'], array($path));
 		
 		return $data;
 	}
