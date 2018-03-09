@@ -8,6 +8,7 @@ use infrajs\each\Fix;
 use infrajs\cache\Cache as OldCache;
 use infrajs\config\Config;
 use akiyatkin\boo\Cache;
+use akiyatkin\boo\MemCache;
 use infrajs\sequence\Sequence;
 /*
 * xls методы для работы с xls документами. 
@@ -1463,98 +1464,104 @@ class Xlsx
 		
 		return $data;
 	}
+	public static function getFiles($src) {
+		return MemCache::once( function ($src){
+			$res = [
+				'images' => array(),
+				'texts' => array(),
+				'files' => array()
+			];
+			$dir = Path::theme($src);
+			if (!$dir) return $res;
+			
+			if (is_dir($dir)) {
+				$paths = scandir($dir);
+				foreach($paths as $k=>$v) {
+					$paths[$k] = $dir.$v;
+				}
+			} else {
+				$paths = array($dir);
+				$p = Load::srcInfo($src);
+				$src = $p['folder'];
+			}
+			
+			Each::forr($paths, function &($p) use (&$res, $src) {
+
+				$d = explode('/', $p);
+				$name = array_pop($d);
+				$n = mb_strtolower($name);
+				$fd = Load::nameInfo($n);
+				$ext = $fd['ext'];
+				$r = null;
+				if (!Path::theme($src.$name)) return $r;
+				if ($name{0} == '.') return $r;
+				$path = $src.Path::toutf($name);
+				
+				
+				$im = array('png', 'gif', 'jpg');
+				$te = array('html', 'tpl', 'mht', 'docx');
+				$ignore = array('db', 'json');
+
+				if (in_array($ext, $im)) {
+					$res['images'][] = $path;
+				} else if (in_array($ext, $te)) {
+					$res['texts'][] = $path;
+				} else {
+					if (!in_array($ext, $ignore)) {
+						$res['files'][] = Load::srcInfo($path);
+					}
+				}
+				return $r;
+			});
+			return $res;
+		}, array($src), ['akiyatkin\\boo\\Cache','getModifiedTime'], [$src]);
+	}
 	public static function addFiles($root, &$pos, $dir = false)
 	{
-		$props=array('producer','article');
 		
-
-
 		if (!$dir) {
-            //if (!isset($pos['images'])) {
-            $pos['images'] = array();
-            //}
-            //if (!isset($pos['texts'])) {
-            $pos['texts'] = array();
-            //}
-            //if (!isset($pos['files'])) {
-            $pos['files'] = array();
-            //}
+			$props = array('producer','article');
 			$dir = array();
-			$pth=Path::resolve($root);
-			if (Each::forr($props, function &($name) use (&$dir, &$pos) {
+			$pth = Path::resolve($root);
+			Each::forr($props, function &($name) use (&$dir, $pos) {
 				$rname = Sequence::right($name);
 				$val = Sequence::get($pos, $rname);
-				$r = null;
-				if (!$val) return $r;
 				$dir[] = $val;
-				
+
+				$r = null;
 				return $r;
-			})) {
-				return;
-			}
+			});
 
 			if ($dir) {
 				$dir = implode('/', $dir).'/';
-				$dir = $pth.$dir;
+				$dir = $root.$dir;
 			} else {
-				$dir = $pth;
+				$dir = $root;
 			}
+
 		} else {
 			$dir = $root.$dir;
 		}
 
-		$dir = Path::theme($dir);
-		if (!$dir) {
-			return false;
-		}
+		$res = Xlsx::getFiles($dir);
 
-
-		if (is_dir($dir)) {
-			$paths = glob($dir.'*');
-		} elseif (is_file($dir)) {
-			$paths = array($dir);
-			$p = Load::srcInfo($dir);
-			$dir = $p['folder'];
-		}
-
-		Each::forr($paths, function &($p) use (&$pos, $dir) {
-
-			$d = explode('/', $p);
-			$name = array_pop($d);
-			$n = mb_strtolower($name);
-			$fd = Load::nameInfo($n);
-			$ext = $fd['ext'];
-			$r = null;
-			//if(!$ext)return;
-			if (!is_file($dir.$name)) return $r;
-			//$name=preg_replace('/\.\w{0,4}$/','',$name);
-
-			/*$p=pathinfo($p);
-			$name=$p['basename'];
-			$ext=strtolower($p['extension']);*/
-			if ($name{0} == '.') return $r;
-			$dir = Path::pretty($dir);
-			$name = Path::toutf($dir.$name);
-			
-			
-			$im = array('png', 'gif', 'jpg');
-			$te = array('html', 'tpl', 'mht', 'docx');
-			$ignore = array('db', 'json');
-
-			if (in_array($ext, $im)) {
-				$pos['images'][] = $name;
-			} else if (in_array($ext, $te)) {
-				$pos['texts'][] = $name;
-			} else {
-				if (!in_array($ext, $ignore)) {
-					$pos['files'][] = Load::srcInfo($dir.$name);
-				}
-			}
-			return $r;
-		});
-
+		if (!isset($pos['images'])) {
+            $pos['images'] = array();
+        }
+        if (!isset($pos['texts'])) {
+        	$pos['texts'] = array();
+        }
+        if (!isset($pos['files'])) {
+        	$pos['files'] = array();
+        }
+        
+		$pos['images'] = array_merge($res['images'], $pos['images']);
+		$pos['files'] = array_merge($res['files'], $pos['files']);
+		$pos['texts'] = array_merge($res['texts'], $pos['texts']);
+		
 		//$pos['images'] = array_unique($pos['images']);
 		//$pos['texts'] = array_unique($pos['texts']);
 		//$pos['files'] = array_unique($pos['files']);
+
 	}
 }
