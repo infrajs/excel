@@ -6,6 +6,7 @@ use infrajs\load\Load;
 use infrajs\each\Each;
 use infrajs\each\Fix;
 use infrajs\cache\Cache as OldCache;
+use infrajs\once\Once;
 use infrajs\config\Config;
 use akiyatkin\boo\Cache;
 use akiyatkin\boo\MemCache;
@@ -1465,7 +1466,7 @@ class Xlsx
 		return $data;
 	}
 	public static function getFiles($src) {
-		return MemCache::once( function ($src){
+		return Once::func( function ($src){
 			$res = [
 				'images' => array(),
 				'texts' => array(),
