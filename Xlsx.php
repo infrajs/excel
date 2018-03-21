@@ -265,7 +265,7 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 		'pitch' => $pitch, //Шаг от верхнего уровня
 		'miss' => $miss,//Группу надо расформировать, но мы не знаем ещё есть ли в ней позиции
 		'type' => $type,
-		'parent' => &$parent,
+		//'parent' => &$parent,
 		'title' => (string) $title,
 		'head' => array(),
 		'descr' => &$descr,
@@ -318,7 +318,7 @@ function xls_processPoss(&$data, $ishead = false)
 				}
 				$p[$propname] = $propvalue;
 			}
-			$p['parent'] = &$data;//Рекурсия
+			//$p['parent'] = &$data;//Рекурсия
 			$pos = $p;
 			$group[$i] = &$pos;
 
@@ -428,12 +428,10 @@ function &xls_runGroups(&$data, $callback, $back = false, $i = 0, &$group = fals
 		}
 	}
 
-	$r = &Each::forr($data['childs'], function &(&$val, $i) use ($callback, $back, &$data) {
-		return xls_runGroups($val, $callback, $back, $i, $data);
-	}, $back);
-	if (!is_null($r)) {
-		return $r;
-	}
+	foreach ($data['childs'] as $i => $val) {
+		$r = &xls_runGroups($data['childs'][$i], $callback, $back, $i, $data);
+		if (!is_null($r)) return $r;
+	}	
 
 	if ($back) {
 		$r = &$callback($data, $i, $group);
@@ -469,13 +467,13 @@ function xls_processGroupFilter(&$data)
 
 	
 	$all = array();
-	Xlsx::runGroups($data, function &(&$gr) use (&$all) {
+	Xlsx::runGroups($data, function &(&$gr, $i, &$parent) use (&$all) {
 		$title = mb_strtolower($gr['title']);
 		if (!isset($all[$title])) {
 			$all[$title] = array('orig' => &$gr, 'list' => array());
 		} else {
 			//Ну вот и нашли повторение
-			$all[$title]['list'][] = &$gr;
+			$all[$title]['list'][] = array('gr' => &$gr, 'parent' => &$parent);
 			//xls_merge($all[$title],$gr);
 			//у некой прошлой группы появляются новые childs.. но мы всё ещё бежим по какому-то его childs и новые добавленные будут проигнорированны
 			//return new Fix('del');
@@ -486,12 +484,12 @@ function xls_processGroupFilter(&$data)
 	Each::foro($all, function &(&$des, $title) use(&$data, &$all){
 		
 
-		Each::forr($des['list'], function &(&$gr) use (&$des, $title, &$all) {
-			xls_merge($des['orig'], $gr); //Переносим данные
+		Each::forr($des['list'], function &($gr) use (&$des, $title, &$all) {
+			xls_merge($des['orig'], $gr['gr']); //Переносим данные
 
 			$gr['parent']['childs'] = array_values(array_filter($gr['parent']['childs'], function(&$g) use (&$gr){
 				//Нужно удалить ссылки на старую группу в childs родителя
-				if (Each::isEqual($g, $gr)) {
+				if (Each::isEqual($g, $gr['gr'])) {
 					return false;
 				}
 				return true;
@@ -553,8 +551,8 @@ function xls_merge(&$gr, &$addgr)
 	//} else {
 	//	$gr['childs'] = array_merge($gr['childs'], $addgr['childs']);
 	//}
-	Each::forr($addgr['childs'], function &(&$val) use (&$gr, $addgr) {
-		$val['parent'] = &$gr;
+	//Each::forr($addgr['childs'], function &(&$val) use (&$gr, $addgr) {
+	//	$val['parent'] = &$gr;
 		//Объединения с вложенной группой добавляется до своих подгрупп
 		//Сначало собираем все подгруппы для добавление в текущую и разом добавляем
 		/*$r = null;
@@ -568,9 +566,9 @@ function xls_merge(&$gr, &$addgr)
 			//if (in_array($addgr['type'],array('row','list'))) {
 			$gr['childs'][] = &$val;
 		}*/
-		$r = null;
-		return $r;
-	});
+	//	$r = null;
+	//	return $r;
+	//});
 
 	Each::foro($addgr['descr'], function &($des, $key) use (&$gr) {
 		//if ($key=='Наименование') return;
@@ -594,7 +592,7 @@ function xls_merge(&$gr, &$addgr)
 	}
 	for ($i = 0, $l = sizeof($addgr['data']); $i < $l; $i++) {
 		$pos = &$addgr['data'][$i];
-		$pos['parent'] = &$gr;
+		//$pos['parent'] = &$gr;
 		
 		$gr['data'][] = &$pos;
 	}
@@ -603,7 +601,7 @@ function xls_merge(&$gr, &$addgr)
 function xls_processDescr(&$data)
 {
 	//
-	xls_runGroups($data, function &(&$gr) {
+	Xlsx::runGroups($data, function &(&$gr) {
 		$descr = array();
 		Each::forr($gr['descr'], function &($row) use (&$descr) {
 			$row = array_values($row);
@@ -688,20 +686,20 @@ function xls_processGroupMiss(&$data)
 		return false;
 	}
 
-	xls_runGroups($data, function &(&$gr, $i, &$group) {
-		if (!empty($gr['miss']) && !empty($gr['parent'])) {
+	xls_runGroups($data, function &(&$gr, $i, &$parent) {
+		if (!empty($gr['miss']) && $parent) {
 			//Берём детей missгруппы и переносим их в родительскую
-			Each::forr($gr['childs'], function &(&$g) use (&$gr) {
+			/*Each::forr($gr['childs'], function &(&$g) use (&$gr) {
 				$g['parent'] = &$gr['parent'];
 				$r = null;
 
 				return $r;
-			});
-			array_splice($group['childs'], $i, 1, $gr['childs']);
+			});*/
+			array_splice($parent['childs'], $i, 1, $gr['childs']);
 
-			Each::forr($gr['data'], function &(&$p) use (&$gr) {
-				$p['parent'] = &$gr['parent'];
-				$gr['parent']['data'][] = $p;
+			Each::forr($gr['data'], function &(&$p) use (&$gr, &$parent) {
+				//$p['parent'] = &$gr['parent'];
+				$parent['data'][] = $p;
 				$r = null;
 
 				return $r;
@@ -978,7 +976,7 @@ class Xlsx
 		Each::forr($ar, function &(&$d) use (&$data) {
 			$r = null;
 			if (!$d) return $r;
-			$d['parent'] = &$data;
+			//$d['parent'] = &$data;
 			$data['childs'][] = &$d;
 			return $r;
 		});
@@ -1002,7 +1000,7 @@ class Xlsx
 		Each::forr($ar, function &(&$d) use (&$data) {
 			$r = null;
 			if (!$d) return $r;
-			$d['parent'] = &$data;
+			//$d['parent'] = &$data;
 			$data['childs'][] = &$d;
 			return $r;
 		});
@@ -1016,9 +1014,9 @@ class Xlsx
 				}
 			}
 		}
-		
-		xls_processDescr($data);
 
+		xls_processDescr($data);
+		
 		if (!isset($config['Сохранить head'])) $config['Сохранить head'] = true;
 		
 		xls_processPoss($data, $config['Сохранить head']);
@@ -1027,7 +1025,7 @@ class Xlsx
 		if (!isset($config['Удалить колонки'])) $config['Удалить колонки'] = array();
 		if (!isset($config['more'])) $config['more'] = false;
 		
-	
+		
 		xls_runPoss($data, function &(&$pos) use (&$config) {
 			$r = null;
 			foreach ($config['Удалить колонки'] as $k) {
@@ -1043,7 +1041,7 @@ class Xlsx
 		});
 
 		if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
-
+		
 
 		if ($config['Имя файла'] == 'Производитель') {
 			xls_processClass($data, 'Производитель', true);
@@ -1112,7 +1110,7 @@ class Xlsx
 			return $r;
 		});
 		if (empty($config['Известные колонки'])) {
-			$config['Известные колонки'] = array('Производитель','Наименование','Описание','Артикул');
+			$config['Известные колонки'] = array('Производитель','Наименование','Описание','Артикул','positions');
 		}
 		$config['Известные колонки'][] = 'parent';
 		$config['Известные колонки'][] = 'more';
