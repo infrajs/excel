@@ -265,7 +265,7 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 		'pitch' => $pitch, //Шаг от верхнего уровня
 		'miss' => $miss,//Группу надо расформировать, но мы не знаем ещё есть ли в ней позиции
 		'type' => $type,
-		//'parent' => &$parent,
+		'parent' => &$parent,
 		'title' => (string) $title,
 		'head' => array(),
 		'descr' => &$descr,
@@ -423,21 +423,17 @@ function &xls_runGroups(&$data, $callback, $back = false, $i = 0, &$group = fals
 {
 	if (!$back) {
 		$r = &$callback($data, $i, $group);
-		if (!is_null($r)) {
-			return $r;
-		}
+		if (!is_null($r)) return $r;
 	}
 
-	foreach ($data['childs'] as $i => $val) {
+	for ($i = 0; $i < sizeof($data['childs']); $i++) {
 		$r = &xls_runGroups($data['childs'][$i], $callback, $back, $i, $data);
 		if (!is_null($r)) return $r;
 	}	
 
 	if ($back) {
 		$r = &$callback($data, $i, $group);
-		if (!is_null($r)) {
-			return $r;
-		}
+		if (!is_null($r)) return $r;
 	}
 
 	return $r;
@@ -679,14 +675,8 @@ function xls_processClass(&$data, $clsname, $musthave = false)
 }
 function xls_processGroupMiss(&$data)
 {
-	$numArgs = func_num_args();
-	if ($numArgs > 1) {
-		trigger_error(sprintf('%s: expects at least 1 parameters, %s given', __FUNCTION__, $numArgs), E_USER_WARNING);
+	Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
 
-		return false;
-	}
-
-	xls_runGroups($data, function &(&$gr, $i, &$parent) {
 		if (!empty($gr['miss']) && $parent) {
 			//Берём детей missгруппы и переносим их в родительскую
 			/*Each::forr($gr['childs'], function &(&$g) use (&$gr) {
@@ -943,6 +933,7 @@ function &xls_init($path, $config = array())
 		}
 		$r=null; return $r;
 	});
+
 	if (empty($config['root'])) {
 		if ($isonefile) {
 			$d = Load::srcInfo($isonefile);
@@ -972,6 +963,7 @@ class Xlsx
 	public static function merge($ar) {
 		$parent = false;
 		$data = _xls_createGroup($ar[0]['title'], $parent, 'set');
+		unset($data['parent']);
 		$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
 		Each::forr($ar, function &(&$d) use (&$data) {
 			$r = null;
@@ -991,6 +983,7 @@ class Xlsx
 		if (empty($config['root'])) {
 			$config['root'] = 'Каталог';
 		}
+
 		$parent = false;
 		$data = _xls_createGroup($config['root'], $parent, 'set');//Сделали группу в которую объединяются все остальные
 		$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
@@ -1060,8 +1053,15 @@ class Xlsx
 		
 		xls_processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
 		
+		Xlsx::runGroups($data, function &(&$g) {
+			unset($g['parent']);
+			$r = null; return $r;
+		});
+		Xlsx::runPoss($data, function &(&$g) {
+			unset($g['parent']);
+			$r = null; return $r;
+		});
 		xls_processGroupMiss($data);//Группы miss(производители) расформировываются
-
 
 	//xls_processGroupCalculate($data);//Добавляются свойства count groups сколько позиций и групп группы должны быть уже определены... почищены...				
 
@@ -1225,15 +1225,7 @@ class Xlsx
 			}
 			return $r;
 		});
-		
-		Xlsx::runGroups($data, function &(&$gr) {
-			unset($gr['parent']);
-			$r = null; return $r;
-		});
-		Xlsx::runPoss($data, function &(&$pos) {
-			unset($pos['parent']);
-			$r = null; return $r;
-		});
+
 		return $data;
 	}
 	public static function &runGroups(&$data, $callback, $back = false)
