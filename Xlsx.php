@@ -784,6 +784,9 @@ function &xls_init($path, $config = array())
 			$ar[] = $path;
 		} elseif ($p) {
 			$isonefile = false;
+			
+			Cache::addCond(['akiyatkin\\boo\\Cache','getModifiedTime'],[$path]);
+
 			array_map(function ($file) use (&$ar, $p, $path) {
 				if ($file{0}=='.') {
 					return;
