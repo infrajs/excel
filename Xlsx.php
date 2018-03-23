@@ -435,7 +435,8 @@ function xls_merge(&$gr, &$addgr)
 	//echo $addgr['type'];
 	//$gr['miss']=0;
 	//if ($gr['pitch'] < $addgr['pitch'] && Xlsx::isParent($addgr, $gr)) {
-		$gr['childs'] = array_merge($addgr['childs'], $gr['childs']);
+	$gr['childs'] = array_merge($addgr['childs'], $gr['childs']);
+	$gr['data'] = array_merge($addgr['data'], $gr['data']);
 	//} else {
 	//	$gr['childs'] = array_merge($gr['childs'], $addgr['childs']);
 	//}
@@ -458,7 +459,7 @@ function xls_merge(&$gr, &$addgr)
 	//	return $r;
 	//});
 
-	Each::foro($addgr['descr'], function &($des, $key) use (&$gr) {
+	/*Each::foro($addgr['descr'], function &($des, $key) use (&$gr) {
 		//if ($key=='Наименование') return;
 		if (!isset($gr['descr'][$key])) {
 			$gr['descr'][$key] = $des;
@@ -477,14 +478,14 @@ function xls_merge(&$gr, &$addgr)
 		$gr['tparam'] .= ','.$tparam;
 	} else {
 		$gr['tparam'] = $tparam;
-	}
-	for ($i = 0, $l = sizeof($addgr['data']); $i < $l; $i++) {
+	}*/
+	/*for ($i = 0, $l = sizeof($addgr['data']); $i < $l; $i++) {
 		$pos = &$addgr['data'][$i];
 		//$pos['parent'] = &$gr;
 		
 		$gr['data'][] = &$pos;
 	}
-	return;
+	return;*/
 }
 function xls_processDescr(&$data)
 {
