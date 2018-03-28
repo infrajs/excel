@@ -301,7 +301,7 @@ function xls_processPoss(&$data, $ishead = false)
 			$p = array();
 			
 			foreach($pos as $k=>$propvalue) {
-				if (empty($head[$k])) return $r;
+				if (empty($head[$k])) continue;
 				$propname = $head[$k];
 				
 				if ($propname{0} == '.') {
