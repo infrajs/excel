@@ -459,7 +459,8 @@ function xls_merge(&$gr, &$addgr)
 	//	return $r;
 	//});
 
-	/*Each::foro($addgr['descr'], function &($des, $key) use (&$gr) {
+	//descr.Наименование встречается позже и первое упоминние сохраняется
+	Each::foro($addgr['descr'], function &($des, $key) use (&$gr) {
 		//if ($key=='Наименование') return;
 		if (!isset($gr['descr'][$key])) {
 			$gr['descr'][$key] = $des;
@@ -468,7 +469,7 @@ function xls_merge(&$gr, &$addgr)
 
 		return $r;
 	});
-
+	/*
 	if (!empty($addgr['tparam'])) {
 		$tparam = $addgr['tparam'];
 	} else {
