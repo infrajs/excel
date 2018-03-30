@@ -134,7 +134,12 @@ function &xls_make($path, $title = false)
 						$pgpy = $row[$first_index + 1] - 1;//Индекс пустой ячейки
 					} else {
 						if ($first_value) {
-							$argr[0]['descr'][] = $row;
+							$row = array_values($row);
+							if ($row[0] == 'Наименование') {
+								if (!empty($row[1])) $argr[0]['title'] = $row[1];
+							} else {
+								$argr[0]['descr'][] = $row;
+							}
 						}
 					}
 				}
@@ -159,7 +164,7 @@ function &xls_make($path, $title = false)
 					$wasdata = false;
 
 					$pdescr = $g[0]['parent']['descr'];
-					unset($pdescr['Наименование']);//Наименование родительской группы не наследуем
+					//unset($pdescr['Наименование']);//Наименование родительской группы не наследуем
 					$g[0]['descr'] = array_merge($pdescr, $g[0]['descr']);
 
 					$g[0]['head'] = &$g[0]['parent']['head'];
@@ -1050,12 +1055,13 @@ class Xlsx
 		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
 			//Имя листа или файла короткое и настоящие имя группы прячется в descr. но имя листа или файла также остаётся в title
 			$r = null;
-			if(!empty($gr['descr']['Наименование'])){
-				$gr['name'] = $gr['descr']['Наименование'];//name крутое правильное Наименование группы
-			}
-			if (empty($gr['name'])) {
+			if (empty($gr['name'])) { //depricated - только title
 				$gr['name'] = $gr['title'];
-			}//title то как называется файл или какое имя используется в адресной строке
+			}//depricated title то как называется файл или какое имя используется в адресной строке
+			/*if(!empty($gr['descr']['Наименование'])){
+				$gr['name'] = $gr['descr']['Наименование'];//name крутое правильное Наименование группы
+			}*/
+			
 			return $r;
 		});
 		Xlsx::runGroups($data, function &(&$group, $i, $parent) {
@@ -1064,11 +1070,11 @@ class Xlsx
 			} else {
 				$group['group'] = false;
 			}
-			if (!empty($group['descr']['Наименование'])) {
-				$group['Группа'] = $group['descr']['Наименование'];
-			} else {
-				$group['Группа'] = $group['title'];
-			}
+			//if (!empty($group['descr']['Наименование'])) {
+			//	$group['Группа'] = $group['descr']['Наименование'];
+			//} else {
+				$group['Группа'] = $group['title']; //depricated
+			//}
 			$r = null; return $r;
 		});
 		xls_runPoss($data, function &(&$pos, $i, $group) {
