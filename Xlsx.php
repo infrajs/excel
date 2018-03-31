@@ -129,11 +129,11 @@ function &xls_make($path, $title = false)
 					//Текущий row и есть заголовок
 					$argr[0]['head'] = $row;
 				} else {
-					if ($first_value == 'ПГПЯ') {
+					if ($row && $first_value == 'ПГПЯ') {
 						//Признак группы пустая ячейка номер этой ячейки
 						$pgpy = $row[$first_index + 1] - 1;//Индекс пустой ячейки
 					} else {
-						if ($first_value) {
+						if ($row && $first_value) {
 							$row = array_values($row);
 							if ($row[0] == 'Наименование') {
 								if (!empty($row[1])) $argr[0]['title'] = $row[1];
