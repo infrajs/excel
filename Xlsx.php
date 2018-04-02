@@ -195,9 +195,9 @@ function &xls_make($path, $title = false)
 	});
 	return $groups;
 }
-function &xls_runPoss(&$data, $callback, $back=false)
+function &xls_runPoss(&$data, $callback)
 {
-	return xls_runGroups($data, function &(&$group) use ($back, &$callback) {
+	return xls_runGroups($data, function &(&$group) use (&$callback) {
 		$r = null;
 		if(empty($group['data'])) return $r;
 		foreach ($group['data'] as $i => &$pos){
@@ -889,9 +889,7 @@ class Xlsx
 		return $data;
 	}
 	public static function &initData($ar, $config = array()) {
-		if (empty($config['root'])) {
-			$config['root'] = 'Каталог';
-		}
+		if (empty($config['root'])) $config['root'] = 'Каталог';
 
 		$parent = false;
 		$data = _xls_createGroup($config['root'], $parent, 'set');//Сделали группу в которую объединяются все остальные
@@ -949,7 +947,7 @@ class Xlsx
 			xls_processClass($data, 'Производитель', true);
 		}//Должен быть обязательно miss раставляется
 
-		xls_runPoss($data, function &(&$pos, $i, &$group) {
+		/*xls_runPoss($data, function &(&$pos, $i, &$group) {
 			// пустая позиция
 			$r = null;
 			if (sizeof($pos) == 2) { //group_title Производитель
@@ -957,20 +955,20 @@ class Xlsx
 				return $r;
 			}
 			return $r;
-		});
+		});*/
 		
 		Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
 		
 
 
-		Xlsx::runGroups($data, function &(&$g) {
+		/*Xlsx::runGroups($data, function &(&$g) {
 			unset($g['parent']);
 			$r = null; return $r;
 		});
 		Xlsx::runPoss($data, function &(&$g) {
 			unset($g['parent']);
 			$r = null; return $r;
-		});
+		});*/
 
 		Xlsx::processGroupMiss($data);//Группы miss(производители) расформировываются
 
@@ -988,7 +986,7 @@ class Xlsx
 						continue;
 					}
 					$gr['data'][$i]['Производитель'] = $gr['descr']['Производитель'];
-					$gr['data'][$i]['producer'] = Path::encode($gr['descr']['Производитель']);
+					//$gr['data'][$i]['producer'] = Path::encode($gr['descr']['Производитель']);
 				}
 			}
 			$r = null; return $r;
@@ -997,14 +995,13 @@ class Xlsx
 		if (empty($config['Подготовить для адреса'])) {
 			$config['Подготовить для адреса'] = array('Артикул' => 'article','Производитель' => 'producer');
 		}
-
 		xls_processPossFS($data, $config['Подготовить для адреса']);//Заменяем левые символы в свойстве
+
 
 
 		if (empty($config['Обязательные колонки'])) {
 			$config['Обязательные колонки'] = array('article','producer');
-		}
-		
+		}		
 		Xlsx::runGroups($data, function &(&$group) use ($config) {
 			$r = null; 
 			if (empty($group['data'])) return $r;
@@ -1020,10 +1017,11 @@ class Xlsx
 			$group['data'] = array_values($group['data']);
 			return $r;
 		});
+
+
 		if (empty($config['Известные колонки'])) {
-			$config['Известные колонки'] = array('Производитель','Наименование','Описание','Артикул','positions');
+			$config['Известные колонки'] = array('Производитель','Наименование','Описание');
 		}
-		$config['Известные колонки'][] = 'parent';
 		$config['Известные колонки'][] = 'more';
 		foreach ($config['Подготовить для адреса'] as $k => $v) {
 			$config['Известные колонки'][] = $v;
@@ -1037,7 +1035,7 @@ class Xlsx
 		Xlsx::prepareMetaGroup($data);
 		
 
-		if (empty($config['Ссылка parent'])) {
+		/*if (empty($config['Ссылка parent'])) {
 			Xlsx::runGroups($data, function &(&$group) {
 				$r = null;
 				unset($group['parent']);
@@ -1048,8 +1046,186 @@ class Xlsx
 				unset($pos['parent']);
 				return $r;
 			});
-		}
+		}*/
+		Xlsx::makeItems($data);
 		return $data;
+	}
+	public static function makeItems(&$data) {
+		$poss = array();
+		Xlsx::runPoss($data, function (&$pos, $i, &$group) use (&$poss) {
+			$prodart = $pos['producer'].' '.$pos['article'];
+			if (isset($poss[$prodart])) { //Нашли повтор
+				unset($group['data'][$i]);
+				$row = array( 'more' => array());
+				
+				foreach ($pos as $prop => $val) {
+					if ($prop == 'more') continue;
+					if (isset($poss[$prodart][$prop])) {
+						if ($poss[$prodart][$prop] == $pos[$prop] ) continue;
+						$row[$prop] = $pos[$prop];
+					} else {
+						//Значения в первом не было
+						$poss[$prodart][$prop] = $pos[$prop];
+					}
+				}
+				foreach ($pos['more'] as $prop => $val) {
+					if (isset($poss[$prodart]['more'][$prop])) {
+						if ($poss[$prodart]['more'][$prop] == $pos['more'][$prop] ) continue;
+						$row['more'][$prop] = $pos['more'][$prop];
+					} else {
+						//Значения в первом не было
+						$poss[$prodart]['more'][$prop] = $pos['more'][$prop];
+					}	
+				}
+				$head = array_keys($row);
+				if ($row) {
+					if (!isset($poss[$prodart]['items'])) {
+						$poss[$prodart]['items'] = array();
+						$poss[$prodart]['itemrows'] = array_merge($row,$row['more']);
+						unset($poss[$prodart]['itemrows']['more']);
+						/*$orig = array('more'=>array());
+						foreach ($poss[$prodart]['itemrows'] as $key => $v) {
+							if (isset($poss[$prodart][$key])) {
+								$orig[$key] = $poss[$prodart][$key];
+							} else {
+								$orig['more'][$key] = $poss[$prodart]['more'][$key];
+							}
+						}
+						$orig['index'] = sizeof($poss[$prodart]['items']);
+						$poss[$prodart]['items'][] = $orig;*/
+						$row['index'] = sizeof($poss[$prodart]['items'])+1;
+						$poss[$prodart]['items'][] = $row;
+
+					} else {
+						
+						foreach ($row as $key => $v) {
+							if ($key == 'more') continue;
+							if (isset($poss[$prodart]['itemrows'][$key])) continue;
+							//Всем редыдущим надо установить оригинальное значение
+							$poss[$prodart]['itemrows'][$key] = 1;
+							foreach ($poss[$prodart]['items'] as $i => $p) {
+								$poss[$prodart]['items'][$i][$key] = $poss[$prodart][$key];
+							}
+						}
+						foreach ($row['more'] as $key => $v) {
+							if (isset($poss[$prodart]['itemrows'][$key])) continue;
+							//Всем редыдущим надо установить оригинальное значение
+							$poss[$prodart]['itemrows'][$key] = 1;
+							foreach ($poss[$prodart]['items'] as $i => $p) {
+								$poss[$prodart]['items'][$i]['more'][$key] = $poss[$prodart]['more'][$key];
+							}
+							
+						}
+						foreach ($poss[$prodart]['itemrows'] as $key => $v) {
+							if (isset($row[$key]) || isset($row['more'][$key])) continue;
+							//В новых значениях нет старых
+							if (isset($poss[$prodart][$key])) {
+								$row[$key] = $poss[$prodart][$key];
+							} else {
+								$row['more'][$key] = $poss[$prodart]['more'][$key];
+							}
+						}
+						$row['index'] = sizeof($poss[$prodart]['items'])+1;
+						$poss[$prodart]['items'][] = $row;
+					}
+				}
+			} else {
+				$pos['index'] = 0;
+				$poss[$prodart] = &$pos;				
+			}
+			$r = null; return $r;
+		});
+		foreach ($poss as $i => $p) {
+			unset($poss[$i]['itemrows']);
+			if (isset($poss[$i]['items'])) {
+				foreach($poss[$i]['items'] as $t=>$tval) {
+					ksort($poss[$i]['items'][$t]['more']);
+				}
+			}
+		}
+
+		Xlsx::runGroups($data, function &(&$group) {
+			$group['data'] = array_values($group['data']);
+			$r = null;return $r;
+		});
+	}
+	
+	public static function getItemsFromPos($pos) {
+		if (empty($pos['items'])) return [$pos];
+		$items = array($pos);
+		unset($items[0]['items']);
+		foreach ($pos['items'] as $p) {
+			$item = $pos;
+			unset($item['items']);
+			if (isset($item['more'])) {
+				$item['more'] = array_merge($item['more'], $p['more']);
+			}
+			unset($p['more']);
+			$items[] = array_merge($item, $p);
+		}
+		
+		return $items;
+	}
+	public static function makePosFromItems($items) {
+		$pos = $items[0];
+		if (sizeof($items) == 1) return $pos;
+		$pos['items'] = array();
+		$heads = array();
+		
+		foreach ($items as $i => $item) {
+			if ($i == 0) continue;
+			$row = array('more' => array());
+			foreach ($item as $key => $val) {
+				if ($key == 'more') continue;
+				if ($pos[$key] == $item[$key]) continue;
+				$row[$key] = $item[$key];
+			}
+			foreach ($item['more'] as $key => $val) {
+				if ($pos['more'][$key] == $item['more'][$key]) continue;
+				$row['more'][$key] = $item['more'][$key];
+			}
+			
+			if (!$heads) {
+				$heads = array_merge($row, $row['more']);
+				unset($heads['more']);
+				/*$orig = array('more' => array());
+				foreach ($heads as $j => $n) {
+					if (isset($pos[$j])) {
+						$orig[$j] = $pos[$j];
+					} else {
+						$orig['more'][$j] = $pos['more'][$j];
+					}
+				}
+				$pos['items'][] = $orig;*/
+				$pos['items'][] = $row;
+			} else {
+				foreach ($heads as $r => $val) {
+					//Нашли отличие раньше, а сейчас его повторяем, что бы в row все свойства повторялись в каждой строке
+					if (isset($row[$r]) || isset($row['more'][$r])) continue;
+					if (isset($pos[$r])) {
+						$row[$r] = $pos[$r];
+					} else {
+						$row['more'][$r] = $pos['more'][$r];
+					}
+				}
+				foreach ($row as $r => $val) {
+					if (isset($heads[$r])) continue;
+					$heads[$r] = 1;//Нашли новое свойство отличительное и надо его размножить
+					foreach ($pos['items'] as $p => $orow) {
+						if (isset($row[$r])) {
+							if (isset($pos['items'][$p][$r])) continue;
+							$pos['items'][$p][$r] = $row[$r];
+						} else {
+							if (isset($pos['items'][$p]['more'][$r])) continue;
+							$pos['items'][$p]['more'][$r] = $row['more'][$r];
+						}
+					}
+				}
+				$pos['items'][] = $row;
+			}
+		}
+		
+		return $pos;
 	}
 	public static function prepareMetaGroup(&$data) {
 		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
@@ -1080,7 +1256,7 @@ class Xlsx
 		xls_runPoss($data, function &(&$pos, $i, $group) {
 			$r = null;
 			$pos['group'] = $group['title'];
-			$pos['Группа'] = $group['Группа'];
+			$pos['Группа'] = $group['Группа'];//depricated
 			return $r;
 		});
 		
@@ -1407,14 +1583,14 @@ class Xlsx
 			}
 			
 			Each::forr($paths, function &($p) use (&$res, $src) {
-
 				$d = explode('/', $p);
 				$name = array_pop($d);
 				$n = mb_strtolower($name);
 				$fd = Load::nameInfo($n);
 				$ext = $fd['ext'];
 				$r = null;
-				if (!Path::theme($src.$name)) return $r;
+				Cache::addCond(['akiyatkin\\boo\\Cache','getModifiedTime'],[$src]);
+				if (!Path::theme($src.Path::toutf($name))) return $r;
 				if ($name{0} == '.') return $r;
 				$path = $src.Path::toutf($name);
 				
@@ -1459,7 +1635,6 @@ class Xlsx
 			} else {
 				$dir = $root;
 			}
-
 		} else {
 			$dir = $root.$dir;
 		}
