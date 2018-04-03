@@ -1034,19 +1034,6 @@ class Xlsx
 		
 		Xlsx::prepareMetaGroup($data);
 		
-
-		/*if (empty($config['Ссылка parent'])) {
-			Xlsx::runGroups($data, function &(&$group) {
-				$r = null;
-				unset($group['parent']);
-				return $r;
-			});
-			xls_runPoss($data, function &(&$pos, $i) {
-				$r = null;
-				unset($pos['parent']);
-				return $r;
-			});
-		}*/
 		Xlsx::makeItems($data);
 		return $data;
 	}
@@ -1054,90 +1041,81 @@ class Xlsx
 		$poss = array();
 		Xlsx::runPoss($data, function (&$pos, $i, &$group) use (&$poss) {
 			$prodart = $pos['producer'].' '.$pos['article'];
-			if (isset($poss[$prodart])) { //Нашли повтор
-				unset($group['data'][$i]);
-				$row = array( 'more' => array());
-				
-				foreach ($pos as $prop => $val) {
-					if ($prop == 'more') continue;
-					if (isset($poss[$prodart][$prop])) {
-						if ($poss[$prodart][$prop] == $pos[$prop] ) continue;
-						$row[$prop] = $pos[$prop];
-					} else {
-						//Значения в первом не было
-						$poss[$prodart][$prop] = $pos[$prop];
-					}
-				}
-				foreach ($pos['more'] as $prop => $val) {
-					if (isset($poss[$prodart]['more'][$prop])) {
-						if ($poss[$prodart]['more'][$prop] == $pos['more'][$prop] ) continue;
-						$row['more'][$prop] = $pos['more'][$prop];
-					} else {
-						//Значения в первом не было
-						$poss[$prodart]['more'][$prop] = $pos['more'][$prop];
-					}	
-				}
-				$head = array_keys($row);
-				if ($row) {
-					if (!isset($poss[$prodart]['items'])) {
-						$poss[$prodart]['items'] = array();
-						$poss[$prodart]['itemrows'] = array_merge($row,$row['more']);
-						unset($poss[$prodart]['itemrows']['more']);
-						/*$orig = array('more'=>array());
-						foreach ($poss[$prodart]['itemrows'] as $key => $v) {
-							if (isset($poss[$prodart][$key])) {
-								$orig[$key] = $poss[$prodart][$key];
-							} else {
-								$orig['more'][$key] = $poss[$prodart]['more'][$key];
-							}
-						}
-						$orig['index'] = sizeof($poss[$prodart]['items']);
-						$poss[$prodart]['items'][] = $orig;*/
-						$row['index'] = sizeof($poss[$prodart]['items'])+1;
-						$poss[$prodart]['items'][] = $row;
-
-					} else {
-						
-						foreach ($row as $key => $v) {
-							if ($key == 'more') continue;
-							if (isset($poss[$prodart]['itemrows'][$key])) continue;
-							//Всем редыдущим надо установить оригинальное значение
-							$poss[$prodart]['itemrows'][$key] = 1;
-							foreach ($poss[$prodart]['items'] as $i => $p) {
-								$poss[$prodart]['items'][$i][$key] = $poss[$prodart][$key];
-							}
-						}
-						foreach ($row['more'] as $key => $v) {
-							if (isset($poss[$prodart]['itemrows'][$key])) continue;
-							//Всем редыдущим надо установить оригинальное значение
-							$poss[$prodart]['itemrows'][$key] = 1;
-							foreach ($poss[$prodart]['items'] as $i => $p) {
-								$poss[$prodart]['items'][$i]['more'][$key] = $poss[$prodart]['more'][$key];
-							}
-							
-						}
-						foreach ($poss[$prodart]['itemrows'] as $key => $v) {
-							if (isset($row[$key]) || isset($row['more'][$key])) continue;
-							//В новых значениях нет старых
-							if (isset($poss[$prodart][$key])) {
-								$row[$key] = $poss[$prodart][$key];
-							} else {
-								$row['more'][$key] = $poss[$prodart]['more'][$key];
-							}
-						}
-						$row['index'] = sizeof($poss[$prodart]['items'])+1;
-						$poss[$prodart]['items'][] = $row;
-					}
-				}
-			} else {
+			if (!isset($poss[$prodart])) {
 				$pos['index'] = 0;
-				$poss[$prodart] = &$pos;				
+				$poss[$prodart] = &$pos;
+				$r = null; return $r;
+			}
+			
+			//Нашли повтор
+			unset($group['data'][$i]);
+			$row = array( 'more' => array());
+			
+			foreach ($pos as $prop => $val) {
+				if ($prop == 'more') continue;
+				if (isset($poss[$prodart][$prop])) {
+					if ($poss[$prodart][$prop] == $pos[$prop] ) continue;
+					$row[$prop] = $pos[$prop];
+				} else {
+					//Значения в первом не было
+					$poss[$prodart][$prop] = $pos[$prop];
+				}
+			}
+			foreach ($pos['more'] as $prop => $val) {
+				if (isset($poss[$prodart]['more'][$prop])) {
+					if ($poss[$prodart]['more'][$prop] == $pos['more'][$prop] ) continue;
+					$row['more'][$prop] = $pos['more'][$prop];
+				} else {
+					//Значения в первом не было
+					$poss[$prodart]['more'][$prop] = $pos['more'][$prop];
+				}	
+			}
+			$head = array_keys($row);
+			if ($row) {
+				if (!isset($poss[$prodart]['items'])) {
+					$poss[$prodart]['items'] = array();
+					$poss[$prodart]['itemrows'] = array_merge($row,$row['more']);
+					unset($poss[$prodart]['itemrows']['more']);
+					$row['index'] = sizeof($poss[$prodart]['items'])+1;
+					$poss[$prodart]['items'][] = $row;
+				} else {
+					foreach ($row as $key => $v) {
+						if ($key == 'more') continue;
+						if (isset($poss[$prodart]['itemrows'][$key])) continue;
+						//Всем редыдущим надо установить оригинальное значение
+						$poss[$prodart]['itemrows'][$key] = 1;
+						foreach ($poss[$prodart]['items'] as $i => $p) {
+							$poss[$prodart]['items'][$i][$key] = $poss[$prodart][$key];
+						}
+					}
+					foreach ($row['more'] as $key => $v) {
+						if (isset($poss[$prodart]['itemrows'][$key])) continue;
+						//Всем редыдущим надо установить оригинальное значение
+						$poss[$prodart]['itemrows'][$key] = 1;
+						foreach ($poss[$prodart]['items'] as $i => $p) {
+							$poss[$prodart]['items'][$i]['more'][$key] = $poss[$prodart]['more'][$key];
+						}
+						
+					}
+					foreach ($poss[$prodart]['itemrows'] as $key => $v) {
+						if (isset($row[$key]) || isset($row['more'][$key])) continue;
+						//В новых значениях нет старых
+						if (isset($poss[$prodart][$key])) {
+							$row[$key] = $poss[$prodart][$key];
+						} else {
+							$row['more'][$key] = $poss[$prodart]['more'][$key];
+						}
+					}
+					$row['index'] = sizeof($poss[$prodart]['items'])+1;
+					$poss[$prodart]['items'][] = $row;
+				}
 			}
 			$r = null; return $r;
 		});
 		foreach ($poss as $i => $p) {
-			unset($poss[$i]['itemrows']);
+			//unset($poss[$i]['itemrows']);
 			if (isset($poss[$i]['items'])) {
+				$poss[$i]['itemrows'] = array_fill_keys(array_keys($poss[$i]['itemrows']), 1);
 				foreach($poss[$i]['items'] as $t=>$tval) {
 					ksort($poss[$i]['items'][$t]['more']);
 				}
@@ -1150,21 +1128,28 @@ class Xlsx
 		});
 	}
 	public static function setItem(&$pos, $index = 0) {
-		if ($index && isset($pos['items'][$index-1])) {
-			$item = $pos['items'][$index-1];
-			$orig = array('more'=>array());
-			foreach ($item as $k => $v) {
-				if (in_array($k, ['more','items'])) continue;
-				$orig[$k] = $pos[$k];
-				$pos[$k] = $item[$k];
+			
+		foreach ($pos['items'] as $i => $item) {
+			if ($item['index'] == $index) {
+
+				$orig = array('more'=>array());
+				foreach ($item as $k => $v) {
+					if (in_array($k, ['more','items'])) continue;
+					$orig[$k] = $pos[$k];
+					$pos[$k] = $item[$k];
+				}
+				foreach ($item['more'] as $k => $v) {
+					$orig['more'][$k] = $pos['more'][$k];
+					$pos['more'][$k] = $item['more'][$k];
+				}
+				unset($pos['items'][$i]);
+				array_unshift($pos['items'], $orig);
+				$pos['items'] = array_values($pos['items']);
+				break;	
 			}
-			foreach ($item['more'] as $k => $v) {
-				$orig['more'][$k] = $pos['more'][$k];
-				$pos['more'][$k] = $item['more'][$k];
-			}
-			unset($pos['items'][$index-1]);
-			array_unshift($pos['items'], $orig);
 		}
+		
+
 	}
 	public static function getItemsFromPos($pos) {
 		if (empty($pos['items'])) return [$pos];
@@ -1203,7 +1188,9 @@ class Xlsx
 			
 			if (!$heads) {
 				$heads = array_merge($row, $row['more']);
+				
 				unset($heads['more']);
+
 				/*$orig = array('more' => array());
 				foreach ($heads as $j => $n) {
 					if (isset($pos[$j])) {
@@ -1215,30 +1202,41 @@ class Xlsx
 				$pos['items'][] = $orig;*/
 				$pos['items'][] = $row;
 			} else {
+
 				foreach ($heads as $r => $val) {
 					//Нашли отличие раньше, а сейчас его повторяем, что бы в row все свойства повторялись в каждой строке
 					if (isset($row[$r]) || isset($row['more'][$r])) continue;
+
 					if (isset($pos[$r])) {
 						$row[$r] = $pos[$r];
 					} else {
 						$row['more'][$r] = $pos['more'][$r];
 					}
 				}
+				
 				foreach ($row as $r => $val) {
+					if ($r == 'more') continue;
+					if (isset($heads[$r])) continue;
+					$heads[$r] = 1;//Нашли новое свойство отличительное и надо его размножить
+					echo $r;
+					foreach ($pos['items'] as $p => $orow) {
+						//if (isset($pos['items'][$p][$r])) continue;
+						$pos['items'][$p][$r] = $row[$r];
+					}
+				}
+				foreach ($row['more'] as $r => $val) {
 					if (isset($heads[$r])) continue;
 					$heads[$r] = 1;//Нашли новое свойство отличительное и надо его размножить
 					foreach ($pos['items'] as $p => $orow) {
-						if (isset($row[$r])) {
-							if (isset($pos['items'][$p][$r])) continue;
-							$pos['items'][$p][$r] = $row[$r];
-						} else {
-							if (isset($pos['items'][$p]['more'][$r])) continue;
-							$pos['items'][$p]['more'][$r] = $row['more'][$r];
-						}
+						//if (isset($pos['items'][$p]['more'][$r])) continue;
+						$pos['items'][$p]['more'][$r] = $row['more'][$r];
 					}
 				}
 				$pos['items'][] = $row;
 			}
+		}
+		foreach ($pos['items'] as $t => $tval) {
+			ksort($pos['items'][$t]['more']);
 		}
 		
 		return $pos;
