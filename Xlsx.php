@@ -1149,7 +1149,23 @@ class Xlsx
 			$r = null;return $r;
 		});
 	}
-	
+	public static function setItem(&$pos, $index = 0) {
+		if ($index && isset($pos['items'][$index-1])) {
+			$item = $pos['items'][$index-1];
+			$orig = array('more'=>array());
+			foreach ($item as $k => $v) {
+				if (in_array($k, ['more','items'])) continue;
+				$orig[$k] = $pos[$k];
+				$pos[$k] = $item[$k];
+			}
+			foreach ($item['more'] as $k => $v) {
+				$orig['more'][$k] = $pos['more'][$k];
+				$pos['more'][$k] = $item['more'][$k];
+			}
+			unset($pos['items'][$index-1]);
+			array_unshift($pos['items'], $orig);
+		}
+	}
 	public static function getItemsFromPos($pos) {
 		if (empty($pos['items'])) return [$pos];
 		$items = array($pos);
