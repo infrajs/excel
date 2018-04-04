@@ -1218,10 +1218,9 @@ class Xlsx
 					if ($r == 'more') continue;
 					if (isset($heads[$r])) continue;
 					$heads[$r] = 1;//Нашли новое свойство отличительное и надо его размножить
-					echo $r;
 					foreach ($pos['items'] as $p => $orow) {
 						//if (isset($pos['items'][$p][$r])) continue;
-						$pos['items'][$p][$r] = $row[$r];
+						$pos['items'][$p][$r] = $pos[$r];
 					}
 				}
 				foreach ($row['more'] as $r => $val) {
@@ -1229,10 +1228,12 @@ class Xlsx
 					$heads[$r] = 1;//Нашли новое свойство отличительное и надо его размножить
 					foreach ($pos['items'] as $p => $orow) {
 						//if (isset($pos['items'][$p]['more'][$r])) continue;
-						$pos['items'][$p]['more'][$r] = $row['more'][$r];
+						$pos['items'][$p]['more'][$r] = $pos['more'][$r];
 					}
 				}
+
 				$pos['items'][] = $row;
+
 			}
 		}
 		foreach ($pos['items'] as $t => $tval) {
