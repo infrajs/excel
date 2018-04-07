@@ -9,6 +9,7 @@
 		"infrajs/router":"~1",
 		"infrajs/path":"~1",
 		"infrajs/ans":"~1",
+		"akiyatkin/dabudi":"~1",
 		"akiyatkin/boo":"~1",
 		"infrajs/sequence":"~1",
 		"infrajs/load":"~1",

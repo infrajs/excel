@@ -11,6 +11,7 @@ use infrajs\config\Config;
 use akiyatkin\boo\Cache;
 use akiyatkin\boo\MemCache;
 use infrajs\sequence\Sequence;
+use akiyatkin\dabudi\Model;
 /*
 * xls методы для работы с xls документами. 
 *
@@ -1042,7 +1043,7 @@ class Xlsx
 		Xlsx::runPoss($data, function (&$pos, $i, &$group) use (&$poss) {
 			$prodart = $pos['producer'].' '.$pos['article'];
 			if (!isset($poss[$prodart])) {
-				$pos['index'] = 0;
+				$pos['id'] = '';
 				$poss[$prodart] = &$pos;
 				$r = null; return $r;
 			}
@@ -1076,7 +1077,6 @@ class Xlsx
 					$poss[$prodart]['items'] = array();
 					$poss[$prodart]['itemrows'] = array_merge($row,$row['more']);
 					unset($poss[$prodart]['itemrows']['more']);
-					$row['index'] = sizeof($poss[$prodart]['items'])+1;
 					$poss[$prodart]['items'][] = $row;
 				} else {
 					foreach ($row as $key => $v) {
@@ -1106,7 +1106,6 @@ class Xlsx
 							$row['more'][$key] = $poss[$prodart]['more'][$key];
 						}
 					}
-					$row['index'] = sizeof($poss[$prodart]['items'])+1;
 					$poss[$prodart]['items'][] = $row;
 				}
 			}
@@ -1116,7 +1115,9 @@ class Xlsx
 			//unset($poss[$i]['itemrows']);
 			if (isset($poss[$i]['items'])) {
 				$poss[$i]['itemrows'] = array_fill_keys(array_keys($poss[$i]['itemrows']), 1);
-				foreach($poss[$i]['items'] as $t=>$tval) {
+				$poss[$i]['id'] = Model::getId($poss[$i]);
+				foreach ($poss[$i]['items'] as $t=>$tval) {
+					$poss[$i]['items'][$t]['id'] = Model::getId($poss[$i], $tval);
 					ksort($poss[$i]['items'][$t]['more']);
 				}
 			}
@@ -1127,12 +1128,10 @@ class Xlsx
 			$r = null;return $r;
 		});
 	}
-	public static function setItem(&$pos, $index = 0) {
-			
+	public static function setItem(&$pos, $id = null) {
 		foreach ($pos['items'] as $i => $item) {
-			if ($item['index'] == $index) {
-
-				$orig = array('more'=>array());
+			if ($item['id'] == $id) {
+				$orig = array( 'more' => array() );
 				foreach ($item as $k => $v) {
 					if (in_array($k, ['more','items'])) continue;
 					$orig[$k] = $pos[$k];
@@ -1148,8 +1147,6 @@ class Xlsx
 				break;	
 			}
 		}
-		
-
 	}
 	public static function getItemsFromPos($pos) {
 		if (empty($pos['items'])) return [$pos];
