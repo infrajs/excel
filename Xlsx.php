@@ -1062,14 +1062,16 @@ class Xlsx
 					$poss[$prodart][$prop] = $pos[$prop];
 				}
 			}
-			foreach ($pos['more'] as $prop => $val) {
-				if (isset($poss[$prodart]['more'][$prop])) {
-					if ($poss[$prodart]['more'][$prop] == $pos['more'][$prop] ) continue;
-					$row['more'][$prop] = $pos['more'][$prop];
-				} else {
-					//Значения в первом не было
-					$poss[$prodart]['more'][$prop] = $pos['more'][$prop];
-				}	
+			if(isset($pos['more'])) {
+				foreach ($pos['more'] as $prop => $val) {
+					if (isset($poss[$prodart]['more'][$prop])) {
+						if ($poss[$prodart]['more'][$prop] == $pos['more'][$prop] ) continue;
+						$row['more'][$prop] = $pos['more'][$prop];
+					} else {
+						//Значения в первом не было
+						$poss[$prodart]['more'][$prop] = $pos['more'][$prop];
+					}	
+				}
 			}
 			$head = array_keys($row);
 			if ($row) {
@@ -1111,6 +1113,7 @@ class Xlsx
 			}
 			$r = null; return $r;
 		});
+
 		foreach ($poss as $i => $p) {
 			//unset($poss[$i]['itemrows']);
 			if (isset($poss[$i]['items'])) {
@@ -1122,7 +1125,7 @@ class Xlsx
 				}
 			}
 		}
-
+		
 		Xlsx::runGroups($data, function &(&$group) {
 			$group['data'] = array_values($group['data']);
 			$r = null;return $r;
