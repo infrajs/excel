@@ -1132,6 +1132,7 @@ class Xlsx
 		});
 	}
 	public static function setItem(&$pos, $id = null) {
+		if (empty($pos['items'])) return $pos;
 		foreach ($pos['items'] as $i => $item) {
 			if ($item['id'] == $id) {
 				$orig = array( 'more' => array() );
