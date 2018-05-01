@@ -1182,9 +1182,11 @@ class Xlsx
 				if ($pos[$key] == $item[$key]) continue;
 				$row[$key] = $item[$key];
 			}
-			foreach ($item['more'] as $key => $val) {
-				if ($pos['more'][$key] == $item['more'][$key]) continue;
-				$row['more'][$key] = $item['more'][$key];
+			if (isset($item['more'])) {
+				foreach ($item['more'] as $key => $val) {
+					if ($pos['more'][$key] == $item['more'][$key]) continue;
+					$row['more'][$key] = $item['more'][$key];
+				}
 			}
 			
 			if (!$heads) {
