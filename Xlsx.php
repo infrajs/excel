@@ -1249,6 +1249,7 @@ class Xlsx
 		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
 			//Имя листа или файла короткое и настоящие имя группы прячется в descr. но имя листа или файла также остаётся в title
 			$r = null;
+			$gr['id'] = Path::encode($gr['title']);
 			if (empty($gr['name'])) { //depricated - только title
 				$gr['name'] = $gr['title'];
 			}//depricated title то как называется файл или какое имя используется в адресной строке
@@ -1261,8 +1262,10 @@ class Xlsx
 		Xlsx::runGroups($data, function &(&$group, $i, $parent) {
 			if ($parent) {
 				$group['group'] = $parent['title'];
+				$group['gid'] = $parent['id'];
 			} else {
 				$group['group'] = false;
+				$group['gid'] = false;
 			}
 			//if (!empty($group['descr']['Наименование'])) {
 			//	$group['Группа'] = $group['descr']['Наименование'];
@@ -1274,6 +1277,7 @@ class Xlsx
 		xls_runPoss($data, function &(&$pos, $i, $group) {
 			$r = null;
 			$pos['group'] = $group['title'];
+			$pos['gid'] = $group['id'];
 			$pos['Группа'] = $group['Группа'];//depricated
 			return $r;
 		});
@@ -1285,7 +1289,7 @@ class Xlsx
 				$data['path'] = array();
 			} else {
 				$data['path'] = $group['path'];
-				$data['path'][] = $data['title'];
+				$data['path'][] = $data['id'];
 			}
 			return $r;
 		});
@@ -1327,7 +1331,7 @@ class Xlsx
 				$data['path'] = array();
 			} else {
 				$data['path'] = $group['path'];
-				$data['path'][] = $data['title'];
+				$data['path'][] = $data['id'];
 			}
 			return $r;
 		});
