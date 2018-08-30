@@ -806,7 +806,7 @@ function &xls_init($path, $config = array())
 		}
 		$r=null; return $r;
 	});
-
+	
 	if (empty($config['root'])) {
 		if ($isonefile) {
 			$d = Load::srcInfo($isonefile);
@@ -1326,16 +1326,18 @@ class Xlsx
 
 		Xlsx::runGroups($data, function &(&$data, $i, &$group) {
 			//path
+
 			$r = null;
 			if (!$group) {
 				$data['path'] = array();
 			} else {
 				$data['path'] = $group['path'];
-				$data['path'][] = $data['id'];
+				if(isset($data['id'])) {
+					$data['path'][] = $data['id'];
+				}
 			}
 			return $r;
 		});
-
 		return $data;
 	}
 	public static function &runGroups(&$data, $callback, $back = false, $ii = 0, &$group = false)
