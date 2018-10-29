@@ -214,6 +214,7 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 	$tparam = '';
 	$descr = array();
 	$miss = false;
+	if ($title{0} == '.') $miss = true;
 	$t = explode(':', $title);
 	if (!$t[0] && $parent) {
 		//Когда начинается с двоеточия
