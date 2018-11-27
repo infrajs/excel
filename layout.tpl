@@ -1,5 +1,5 @@
 <h1 class="text-danger">Excel-документ {data.src}</h1>
-<a class="pull-right" href="/~price.xlsx">Скачать</a>
+<a class="float-right" href="/~price.xlsx">Скачать</a>
 
 {data.childs::list}
 
