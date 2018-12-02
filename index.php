@@ -122,7 +122,23 @@ return Rest::get( function () {
 	}
 ],'get',[function() {
 		echo 'Требуется путь до файла!';
-	}, function (){
+	}, 'group', function($a, $b, $group) {
+		$src = Ans::GET('src');
+		if (!$src) die('Требуется путь до файла!');
+		//if (!Path::theme($src)) die('Файл не найден!');
+		$data = Xlsx::get($src);
+		$ans = array();
+		$ans['group'] = $group;
+		
+		$ans['data'] = Xlsx::runGroups($data, function &($gr) use($group) {
+			if ($gr['title'] === $group) {
+				return $gr;
+			}
+			$r = null;
+			return $r;
+		});
+		return Ans::ret($ans);
+	}, function () {
 		$src = REST::getQuery();
 		$r = explode('/',$src);
 		array_shift($r);

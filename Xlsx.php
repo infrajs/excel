@@ -73,11 +73,14 @@ function &xls_make($path, $title = false)
 
 	if (is_string($path)) {
 		$datamain = xls_parseAll($path);	
-		if (!$datamain) return $datamain;
 		if (!$title) {
 			$p = Load::srcInfo($path);
 			$title = $p['name'];
 			$title = Path::toutf($title);
+		}
+		if (!$datamain) {
+			$groups = &_xls_createGroup($title, $parent, 'book');
+			return $groups;
 		}
 	} else {
 		$datamain = $path;
