@@ -20,7 +20,7 @@ return Rest::get( function () {
 	$src = Access::cache('files_get_php', function ($isrc) {
 		$src = Path::theme($isrc);
 		if ($src) {
-			return $src;
+			return $isrc;
 		}
 
 		$fdata = Load::srcInfo($isrc);
@@ -60,7 +60,7 @@ return Rest::get( function () {
 			return false;
 		}
 
-		return Path::theme($folder.$result);
+		return $folder.$result;
 	}, array($fdata['path']), isset($_GET['re']));
 
 	$ans = array('src' => $isrc);
