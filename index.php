@@ -103,6 +103,21 @@ return Rest::get( function () {
 	}
 ],'init',[function() {
 		echo 'Требуется путь до файла!';
+	}, 'group', function($a, $b, $group) {
+		$src = Ans::GET('src');
+		if (!$src) die('Требуется путь до файла!');
+		//if (!Path::theme($src)) die('Файл не найден!');
+		$data = Xlsx::init($src);
+		$ans = array();
+		$ans['group'] = $group;
+		$ans['data'] = Xlsx::runGroups($data, function &($gr) use ($group) {
+			if ($gr['title'] === $group) {
+				return $gr;
+			}
+			$r = null;
+			return $r;
+		});
+		return Ans::ret($ans);
 	}, function (){
 		$src = REST::getQuery();
 		$r = explode('/',$src);
@@ -121,7 +136,19 @@ return Rest::get( function () {
 		return Ans::ret($ans);
 	}
 ],'get',[function() {
-		echo 'Требуется путь до файла!';
+		$src = Ans::GET('src');
+		if (!$src) die('Требуется путь до файла!');
+		$ans = array();
+		$r = Path::isNest('~', $src);
+		if (!$r) return Ans::err($ans, 'Передан небезопасный путь');
+		$file = Path::theme($src);
+		$ext = Path::getExt($src);
+		if (!in_array($ext, array('xlsx','xls'))) return Ans::err($ans, 'Не подходящее расширение файла');
+		
+		
+		$data = Xlsx::get($src);
+		$ans['data'] = $data;
+		return Ans::ret($ans);
 	}, 'group', function($a, $b, $group) {
 		$src = Ans::GET('src');
 		if (!$src) die('Требуется путь до файла!');
@@ -129,8 +156,7 @@ return Rest::get( function () {
 		$data = Xlsx::get($src);
 		$ans = array();
 		$ans['group'] = $group;
-		
-		$ans['data'] = Xlsx::runGroups($data, function &($gr) use($group) {
+		$ans['data'] = Xlsx::runGroups($data, function &($gr) use ($group) {
 			if ($gr['title'] === $group) {
 				return $gr;
 			}

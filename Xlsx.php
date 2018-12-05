@@ -446,7 +446,7 @@ function xls_merge(&$gr, &$addgr)
 	//$gr['miss']=0;
 	//if ($gr['pitch'] < $addgr['pitch'] && Xlsx::isParent($addgr, $gr)) {
 	$gr['childs'] = array_merge($addgr['childs'], $gr['childs']);
-	$gr['data'] = array_merge($addgr['data'], $gr['data']);
+	$gr['data'] = array_merge($gr['data'], $addgr['data']);
 	//} else {
 	//	$gr['childs'] = array_merge($gr['childs'], $addgr['childs']);
 	//}
@@ -865,10 +865,12 @@ class Xlsx
 		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
 			if (!empty($gr['miss']) && $parent) {
 				array_splice($parent['childs'], $i, 1, $gr['childs']);
-				Each::forr($gr['data'], function &(&$p) use (&$gr, &$parent) {
-					$parent['data'][] = $p;
+				$poss = array();
+				Each::forr($gr['data'], function &(&$p) use (&$poss) {
+					$poss[] = $p;
 					$r = null; return $r;
 				});
+				$parent['data'] = array_merge($parent['data'], $poss);
 			}
 			$r = null; return $r;
 		}, true);
@@ -946,12 +948,25 @@ class Xlsx
 		});
 
 		if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
-		
+
 
 		if ($config['Имя файла'] == 'Производитель') {
 			xls_processClass($data, 'Производитель', true);
 		}//Должен быть обязательно miss раставляется
 
+		if (!isset($config['Игнорировать имя листа'])) $config['Игнорировать имя листа'] = false; 
+		
+		if ($config['Игнорировать имя листа']) {
+			//Все листы делаются miss
+			Xlsx::runGroups($data, function &(&$group){
+				if ($group['type'] == 'list') {
+					$group['miss'] = true;
+				}
+				$r = null;
+				return $r;
+			});
+		}
+		
 		/*xls_runPoss($data, function &(&$pos, $i, &$group) {
 			// пустая позиция
 			$r = null;
@@ -961,9 +976,8 @@ class Xlsx
 			}
 			return $r;
 		});*/
-		
 		Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
-		
+
 
 
 		/*Xlsx::runGroups($data, function &(&$g) {
@@ -1513,6 +1527,7 @@ class Xlsx
 						$data[$list] = array();
 
 						$sheet = simplexml_load_file($cacheFolder.'xl/worksheets/'.$file);
+
 						$rows = $sheet->sheetData->row;
 						foreach ($rows as $row) {
 							$attr = $row->attributes();
@@ -1524,7 +1539,7 @@ class Xlsx
 								if (!$cell->v) {
 									continue;
 								}
-
+								
 								$attr = $cell->attributes();
 								if ($attr['t'] == 's') {
 									$place = (integer) $cell->v;
@@ -1537,6 +1552,8 @@ class Xlsx
 									} else {
 										$value = $contents[$place]->t;
 									}
+								} else if ($attr['t'] == 'str') {
+									$value = (string) $cell->v;
 								} else {
 									$value = $cell->v;
 									$value = (double) $value;
