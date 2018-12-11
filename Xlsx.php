@@ -445,6 +445,7 @@ function xls_merge(&$gr, &$addgr)
 	//echo $addgr['type'];
 	//$gr['miss']=0;
 	//if ($gr['pitch'] < $addgr['pitch'] && Xlsx::isParent($addgr, $gr)) {
+	$gr['merged'] = true;
 	$gr['childs'] = array_merge($addgr['childs'], $gr['childs']);
 	$gr['data'] = array_merge($gr['data'], $addgr['data']);
 	//} else {
@@ -822,6 +823,8 @@ function &xls_init($path, $config = array())
 	$list = array();
 	Each::forr($ar, function &(&$path) use (&$data, &$list) {
 		$r = null;
+		$in = Load::srcInfo($path);
+		if ($in['name'][0] == '~') return $r;
 		$d = &xls_make($path);
 		$list[] = &$d;
 		return $r;
@@ -843,19 +846,26 @@ class Xlsx
 		$all = array();
 		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) use (&$all) {
 			$title = mb_strtolower($gr['title']);
+
 			if (isset($all[$title])) {
+			//	echo $title.'<br>'; 
 				$all[$title]['prevgroup']['miss'] = true;
-				if (!Each::isEqual($gr, $all[$title]['parent'])) {
-					
+			// Непонятно почему нельзя объединять дочернюю группу с родителем
+			//	if (!Each::isEqual($gr, $all[$title]['parent'])) {
 					xls_merge($gr, $all[$title]['prevgroup']); //Переносим данные
 
 					$all[$title]['prevgroup']['childs'] = array();
 					$all[$title]['prevgroup']['data'] = array();
-				}
+			//	} else {
+
+			//	}
 			}
 			$all[$title] = array('prevgroup' => &$gr, 'i' => $i, 'parent' => &$parent);
 			$r = null; return $r;
 		}, true);
+		//echo '<pre>';
+		//print_r(array_keys($all));
+		//exit;
 
 	}
 	public static function &createGroup($title, &$parent, $type, &$row = false) {
@@ -956,16 +966,7 @@ class Xlsx
 
 		if (!isset($config['Игнорировать имя листа'])) $config['Игнорировать имя листа'] = false; 
 		
-		if ($config['Игнорировать имя листа']) {
-			//Все листы делаются miss
-			Xlsx::runGroups($data, function &(&$group){
-				if ($group['type'] == 'list') {
-					$group['miss'] = true;
-				}
-				$r = null;
-				return $r;
-			});
-		}
+		
 		
 		/*xls_runPoss($data, function &(&$pos, $i, &$group) {
 			// пустая позиция
@@ -978,7 +979,22 @@ class Xlsx
 		});*/
 		Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
 
-
+		if ($config['Игнорировать имя листа']) {
+			//Все листы делаются miss
+			Xlsx::runGroups($data, function &(&$group){
+				
+				if ($group['type'] == 'list' && empty($group['merged'])) {
+					if($group['title'] == 'Металлокасеты') {
+						echo '<pre>';
+						print_r($group);
+						exit;
+					}
+					$group['miss'] = true;
+				}
+				$r = null;
+				return $r;
+			});
+		}
 
 		/*Xlsx::runGroups($data, function &(&$g) {
 			unset($g['parent']);
