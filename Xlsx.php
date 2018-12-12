@@ -996,11 +996,6 @@ class Xlsx
 			Xlsx::runGroups($data, function &(&$group){
 				
 				if ($group['type'] == 'list' && empty($group['merged'])) {
-					if($group['title'] == 'Металлокасеты') {
-						echo '<pre>';
-						print_r($group);
-						exit;
-					}
 					$group['miss'] = true;
 				}
 				$r = null;
