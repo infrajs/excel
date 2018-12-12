@@ -686,6 +686,9 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 	if (empty($pos['files'])) {
 		$pos['files'] = array();
 	}
+	if (empty($pos['video'])) {
+		$pos['video'] = array();
+	}
 	$dir = array();
 	if (Each::forr($props, function &($name) use (&$dir, &$pos) {
 		$rname = Sequence::right($name);
@@ -745,12 +748,20 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		
 		$im = array('png', 'gif', 'jpg');
 		$te = array('html', 'tpl', 'mht', 'docx');
+		$vi = array('avi','ogv','mp4','swf');
+
 		if (Each::forr($im, function ($e) use ($ext) {
 			if ($ext == $e) {
 				return true;
 			}
 		})) {
 			$pos['images'][] = $name;
+		} elseif (Each::forr($vi, function ($e) use ($ext) {
+			if ($ext == $e) {
+				return true;
+			}
+		})) {
+			$pos['video'][] = $name;
 		} elseif (Each::forr($te, function ($e) use ($ext) {
 			if ($ext == $e) {
 				return true;
@@ -768,6 +779,7 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 	});
 	$pos['images'] = array_unique($pos['images']);
 	$pos['texts'] = array_unique($pos['texts']);
+	$pos['video'] = array_unique($pos['video']);
 	$pos['files'] = array_unique($pos['files']);
 }
 /*
@@ -1627,7 +1639,8 @@ class Xlsx
 			$res = [
 				'images' => array(),
 				'texts' => array(),
-				'files' => array()
+				'files' => array(),
+				'video' => array()
 			];
 			$dir = Path::theme($src);
 			if (!$dir) return $res;
@@ -1658,12 +1671,15 @@ class Xlsx
 				
 				$im = array('png', 'gif', 'jpg');
 				$te = array('html', 'tpl', 'mht', 'docx');
-				$ignore = array('db', 'json');
+				$vi = array('avi','ogv','mp4','swf');
+				$ignore = array('db', 'json','');
 
 				if (in_array($ext, $im)) {
 					$res['images'][] = $path;
 				} else if (in_array($ext, $te)) {
 					$res['texts'][] = $path;
+				} else if (in_array($ext, $vi)) {
+					$res['video'][] = $path;
 				} else {
 					if (!in_array($ext, $ignore)) {
 						$res['files'][] = Load::srcInfo($path);
@@ -1711,10 +1727,14 @@ class Xlsx
         if (!isset($pos['files'])) {
         	$pos['files'] = array();
         }
+        if (!isset($pos['video'])) {
+        	$pos['video'] = array();
+        }
         
 		$pos['images'] = array_merge($res['images'], $pos['images']);
 		$pos['files'] = array_merge($res['files'], $pos['files']);
 		$pos['texts'] = array_merge($res['texts'], $pos['texts']);
+		$pos['video'] = array_merge($res['video'], $pos['video']);
 		
 		//$pos['images'] = array_unique($pos['images']);
 		//$pos['texts'] = array_unique($pos['texts']);
