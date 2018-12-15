@@ -989,7 +989,9 @@ class Xlsx
 			}
 			return $r;
 		});*/
+
 		Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
+
 
 		if ($config['Игнорировать имя листа']) {
 			//Все листы делаются miss
@@ -1077,6 +1079,7 @@ class Xlsx
 		Xlsx::prepareMetaGroup($data);
 		
 		Xlsx::makeItems($data);
+
 		return $data;
 	}
 	public static function makeItems(&$data) {
@@ -1291,6 +1294,8 @@ class Xlsx
 			//Имя листа или файла короткое и настоящие имя группы прячется в descr. но имя листа или файла также остаётся в title
 			$r = null;
 			$gr['id'] = Path::encode($gr['title']);
+			$e = explode('#',$gr['title']);
+			$gr['title'] = trim($e[0]);
 			if (empty($gr['name'])) { //depricated - только title
 				$gr['name'] = $gr['title'];
 			}//depricated title то как называется файл или какое имя используется в адресной строке
@@ -1515,7 +1520,9 @@ class Xlsx
 				if ($r===true) {
 					$zip->extractTo($zipcacheFolder);
 					$zip->close();
-
+ 					if (!is_file($cacheFolder.'xl/sharedStrings.xml')) {
+ 						return $data;
+ 					}
 					$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
 
 					$contents = $contents->si;
@@ -1526,6 +1533,7 @@ class Xlsx
 					$handle = opendir($cacheFolder.'xl/worksheets/');
 					$i = 0;
 					$syms = array();
+					$files = array();
 					while ($file = readdir($handle)) {
 						if ($file{0} == '.') {
 							continue;
