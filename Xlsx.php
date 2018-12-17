@@ -976,27 +976,16 @@ class Xlsx
 			xls_processClass($data, 'Производитель', true);
 		}//Должен быть обязательно miss раставляется
 
-		if (!isset($config['Игнорировать имя листа'])) $config['Игнорировать имя листа'] = false; 
 		
 		
-		
-		/*xls_runPoss($data, function &(&$pos, $i, &$group) {
-			// пустая позиция
-			$r = null;
-			if (sizeof($pos) == 2) { //group_title Производитель
-				unset($group['data'][$i]);
-				return $r;
-			}
-			return $r;
-		});*/
 
 		Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
+	
 
-
-		if ($config['Игнорировать имя листа']) {
+		if (!isset($config['Игнорировать имена листов'])) $config['Игнорировать имена листов'] = false;
+		if ($config['Игнорировать имена листов']) {
 			//Все листы делаются miss
 			Xlsx::runGroups($data, function &(&$group){
-				
 				if ($group['type'] == 'list' && empty($group['merged'])) {
 					$group['miss'] = true;
 				}
@@ -1005,14 +994,8 @@ class Xlsx
 			});
 		}
 
-		/*Xlsx::runGroups($data, function &(&$g) {
-			unset($g['parent']);
-			$r = null; return $r;
-		});
-		Xlsx::runPoss($data, function &(&$g) {
-			unset($g['parent']);
-			$r = null; return $r;
-		});*/
+		
+		
 
 		Xlsx::processGroupMiss($data);//Группы miss(производители) расформировываются
 

@@ -50,6 +50,7 @@ $option = array(
 	'group_title' => true,
 	'parent_title' => true,
 	'root' => 'Каталог',
+	'Игнорировать имена листов' => false
 	'Обязательные колонки' => array('article','producer'),
 	'Сохранить head' => false,
 	'Имя файла' => 'Производитель',//'Группа'
