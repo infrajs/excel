@@ -1348,7 +1348,6 @@ class Xlsx
 
 		$data = xls_make($src, $title);
 		
-		
 		xls_processDescr($data);
 		
 		xls_processPoss($data, true);

@@ -7,14 +7,10 @@ use infrajs\path\Path;
 use infrajs\access\Access;
 use infrajs\rest\Rest;
 
-if (!is_file('vendor/autoload.php')) {
-	chdir('../../../');
-	require_once('vendor/autoload.php');
-}
 
 return Rest::get( function () {
 	$isrc = Ans::GET('src');
-
+	
 	$fdata = Load::srcInfo($isrc);
 
 	$src = Access::cache('files_get_php', function ($isrc) {
@@ -66,6 +62,7 @@ return Rest::get( function () {
 	$ans = array('src' => $isrc);
 	if (!$src) {
 		if (!Load::isphp()) {
+			echo 'Требуется путь до файла можно без расширения ?src=! или /get/путь, /parse/путь, /init/путь. <br> Ещё так можно /-excel/get/group/Сферы/?src=~Параметры.xlsx';
 			header('HTTP/1.0 404 Not Found');
 		}
 		return;
@@ -89,10 +86,10 @@ return Rest::get( function () {
 		$r = explode('/',$src);
 		array_shift($r);
 		$src = implode('/',$r);
-
 		$ans = array();
+
 		$r = Path::isNest('~', $src);
-		if (!$r) return Ans::err($ans, 'Передан небезопасный путь');
+		if (!$r) return Ans::err($ans, 'Передан небезопасный или некорректный путь');
 		$file = Path::theme($src);
 		$ext = Path::getExt($src);
 		if (!in_array($ext, array('xlsx','xls'))) return Ans::err($ans, 'Не подходящее расширение файла');
@@ -157,7 +154,7 @@ return Rest::get( function () {
 		$ans = array();
 		$ans['group'] = $group;
 		$ans['data'] = Xlsx::runGroups($data, function &($gr) use ($group) {
-			if ($gr['title'] === $group) {
+			if ($gr['title'] === $group && $gr['type'] != 'book') {
 				return $gr;
 			}
 			$r = null;
