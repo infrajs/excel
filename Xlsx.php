@@ -821,7 +821,7 @@ function &xls_init($path, $config = array())
 				}
 			}, scandir($p));
 		}
-		$r=null; return $r;
+		$r = null; return $r;
 	});
 	
 	if (empty($config['root'])) {
@@ -1505,15 +1505,34 @@ class Xlsx
  					if (!is_file($cacheFolder.'xl/sharedStrings.xml')) {
  						return $data;
  					}
-					$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
 
-					$contents = $contents->si;
+					//6.74
+					$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
+					$contents = json_decode(json_encode((array) $contents), true);
+					$contents = $contents['si'];
+
+					for ($i = 0, $l =sizeof($contents); $i < $l; $i++) {
+
+						if (isset($contents[$i]['r'])) {
+							$value = '';
+							foreach ($contents[$i]['r'] as $con) {
+								$value .= $con['t'];
+							}
+						} else {
+							$value = $contents[$i]['t'];
+						}
+						$contents[$i] = $value;
+					}
+					
 
 					$workbook = simplexml_load_file($cacheFolder.'xl/workbook.xml');
 					$sheets = $workbook->sheets->sheet;
+					
+					//$sheets = json_decode(json_encode((array) $sheets), true);
+					
 
 					$handle = opendir($cacheFolder.'xl/worksheets/');
-					$i = 0;
+					$j = 0;
 					$syms = array();
 					$files = array();
 					while ($file = readdir($handle)) {
@@ -1521,58 +1540,47 @@ class Xlsx
 							continue;
 						}
 						$src = $cacheFolder.'xl/worksheets/'.$file;
-						if (!is_file($src)) {
+						if (!is_file($src)) {;
 							continue;
 						}
 						$files[] = $file;
 					}
 					closedir($handle);
 					natsort($files);
-
 					foreach ($files as $file) {
 						$src = $cacheFolder.'xl/worksheets/'.$file;
 
-						$list = $sheets[$i];
-						++$i;
+						$list = $sheets[$j++];
 						$list = $list->attributes();
 						$list = (string) $list['name'];
-
 						$data[$list] = array();
 
 						$sheet = simplexml_load_file($cacheFolder.'xl/worksheets/'.$file);
-
-						$rows = $sheet->sheetData->row;
-						foreach ($rows as $row) {
-							$attr = $row->attributes();
+						$rows = json_decode(json_encode((array) $sheet->sheetData), true);
+						$rows = $rows['row'];
+						
+						for ($i = 0, $l = sizeof($rows); $i < $l; $i++) {
+							$row = $rows[$i];
+							$attr = $row['@attributes'];
 							$r = (string) $attr['r'];
 							$data[$list][$r] = array();
-							$cells = $row->c;
-
+							$cells = $row['c'];
+							
 							foreach ($cells as $cell) {
-								if (!$cell->v) {
-									continue;
-								}
+								if (!isset($cell['v'])) continue;
+								$attr = $cell['@attributes'];
+								if (!isset($attr['t'])) $attr['t'] = false;
 								
-								$attr = $cell->attributes();
 								if ($attr['t'] == 's') {
-									$place = (integer) $cell->v;
-
-									if (isset($contents[$place]->r)) {
-										$value = '';
-										foreach ($contents[$place]->r as $con) {
-											$value .= $con->t;
-										}
-									} else {
-										$value = $contents[$place]->t;
-									}
+									$place = (integer) $cell['v'];
+									$value = $contents[$place];
 								} else if ($attr['t'] == 'str') {
-									$value = (string) $cell->v;
+									$value = (string) $cell['v'];
 								} else {
-									$value = $cell->v;
+									$value = $cell['v'];
 									$value = (double) $value;
 								}
 
-								$attr = $cell->attributes();
 								$c = (string) $attr['r'];//FA232
 								preg_match("/\D+/", $c, $c);
 								$c = $c[0];
@@ -1581,7 +1589,6 @@ class Xlsx
 							}
 						}
 					}
-
 					$syms = array_keys($syms);
 					natsort($syms);
 					/*usort($syms,function($a,$b){
@@ -1616,11 +1623,10 @@ class Xlsx
 			}
 			return $data;
 		}, array($path), ['akiyatkin\boo\Cache','getModifiedTime'], array($path));
-		
 		return $data;
 	}
 	public static function getFiles($src) {
-		return Once::func( function ($src){
+		//return Once::func( function ($src){
 			$res = [
 				'images' => array(),
 				'texts' => array(),
@@ -1648,7 +1654,7 @@ class Xlsx
 				$fd = Load::nameInfo($n);
 				$ext = $fd['ext'];
 				$r = null;
-				Cache::addCond(['akiyatkin\\boo\\Cache','getModifiedTime'],[$src]);
+				//Cache::addCond(['akiyatkin\\boo\\Cache','getModifiedTime'],[$src]);
 				if (!Path::theme($src.Path::toutf($name))) return $r;
 				if ($name{0} == '.') return $r;
 				$path = $src.Path::toutf($name);
@@ -1673,7 +1679,7 @@ class Xlsx
 				return $r;
 			});
 			return $res;
-		}, array($src), ['akiyatkin\\boo\\Cache','getModifiedTime'], [$src]);
+		//}, array($src), ['akiyatkin\\boo\\Cache','getModifiedTime'], [$src]);
 	}
 	public static function addFiles($root, &$pos, $dir = false)
 	{
