@@ -307,7 +307,7 @@ function xls_processPoss(&$data, $ishead = false)
 		}
 
 		Each::forr($data['data'], function &(&$pos, $i, &$group) use (&$head, &$data) {
-
+			$r = null;
 			$p = array();
 			
 			foreach($pos as $k=>$propvalue) {
@@ -321,7 +321,7 @@ function xls_processPoss(&$data, $ishead = false)
 					continue;
 				}
 				if ($propvalue{0} == '.') {
-					continue;
+					return $r;
 				}//Позиции у которых параметры начинаются с точки скрыты
 
 				$propvalue = trim($propvalue);
@@ -1068,19 +1068,19 @@ class Xlsx
 	public static function makeItems(&$data) {
 		$poss = array();
 		Xlsx::runPoss($data, function (&$pos, $i, &$group) use (&$poss) {
-			$prodart = $pos['producer'].' '.$pos['article'];
+			$prodart = mb_strtolower($pos['producer'].' '.$pos['article']);
 			if (!isset($poss[$prodart])) {
 				$pos['id'] = '';
 				$poss[$prodart] = &$pos;
 				$r = null; return $r;
 			}
-			
+			$miss = ['group','gid','Группа','path','more','Артикул','article','producer','Производитель'];
 			//Нашли повтор
 			unset($group['data'][$i]);
-			$row = array( 'more' => array());
+			$row = array();
 			
 			foreach ($pos as $prop => $val) {
-				if ($prop == 'more') continue;
+				if (in_array($prop, $miss)) continue;
 				if (isset($poss[$prodart][$prop])) {
 					if ($poss[$prodart][$prop] == $pos[$prop] ) continue;
 					$row[$prop] = $pos[$prop];
@@ -1089,10 +1089,11 @@ class Xlsx
 					$poss[$prodart][$prop] = $pos[$prop];
 				}
 			}
-			if(isset($pos['more'])) {
+			if (isset($pos['more'])) {
 				foreach ($pos['more'] as $prop => $val) {
 					if (isset($poss[$prodart]['more'][$prop])) {
 						if ($poss[$prodart]['more'][$prop] == $pos['more'][$prop] ) continue;
+						if (!isset($row['more'])) $row['more'] = [];
 						$row['more'][$prop] = $pos['more'][$prop];
 					} else {
 						//Значения в первом не было
@@ -1104,12 +1105,16 @@ class Xlsx
 			if ($row) {
 				if (!isset($poss[$prodart]['items'])) {
 					$poss[$prodart]['items'] = array();
-					$poss[$prodart]['itemrows'] = array_merge($row,$row['more']);
-					unset($poss[$prodart]['itemrows']['more']);
+					if (isset($row['more'])) {
+						$poss[$prodart]['itemrows'] = array_merge($row, $row['more']);
+						unset($poss[$prodart]['itemrows']['more']);
+					} else {
+						$poss[$prodart]['itemrows'] = array_merge($row);
+					}
 					$poss[$prodart]['items'][] = $row;
 				} else {
 					foreach ($row as $key => $v) {
-						if ($key == 'more') continue;
+						if (in_array($key, $miss)) continue;
 						if (isset($poss[$prodart]['itemrows'][$key])) continue;
 						//Всем редыдущим надо установить оригинальное значение
 						$poss[$prodart]['itemrows'][$key] = 1;
@@ -1117,6 +1122,7 @@ class Xlsx
 							$poss[$prodart]['items'][$i][$key] = $poss[$prodart][$key];
 						}
 					}
+					if (isset($row['more']))
 					foreach ($row['more'] as $key => $v) {
 						if (isset($poss[$prodart]['itemrows'][$key])) continue;
 						//Всем редыдущим надо установить оригинальное значение
@@ -1143,13 +1149,25 @@ class Xlsx
 
 		foreach ($poss as $i => $p) {
 			//unset($poss[$i]['itemrows']);
+			$ids = [];
 			if (isset($poss[$i]['items'])) {
 				$poss[$i]['itemrows'] = array_fill_keys(array_keys($poss[$i]['itemrows']), 1);
 				$poss[$i]['id'] = Model::getId($poss[$i]);
 				foreach ($poss[$i]['items'] as $t=>$tval) {
-					$poss[$i]['items'][$t]['id'] = Model::getId($poss[$i], $tval);
-					ksort($poss[$i]['items'][$t]['more']);
+					$id = Model::getId($poss[$i], $tval);
+					if (isset($ids[$id])) {
+						unset($poss[$i]['items'][$t]);
+						continue;
+					}
+					$ids[$id] = true;
+					$poss[$i]['items'][$t]['id'] = $id;
+					if(isset($poss[$i]['items'][$t]['more'])) {
+						ksort($poss[$i]['items'][$t]['more']);
+					}
 				}
+				$poss[$i]['items'] = array_values($poss[$i]['items']);
+				if (sizeof($poss[$i]['items']) == 1) unset($poss[$i]['items']);
+				
 			}
 		}
 		
@@ -1516,7 +1534,9 @@ class Xlsx
 						if (isset($contents[$i]['r'])) {
 							$value = '';
 							foreach ($contents[$i]['r'] as $con) {
-								$value .= $con['t'];
+								if (isset($con['t']) && !is_array($con['t'])) {
+									$value .= $con['t'];
+								}
 							}
 						} else {
 							$value = $contents[$i]['t'];
@@ -1557,6 +1577,7 @@ class Xlsx
 
 						$sheet = simplexml_load_file($cacheFolder.'xl/worksheets/'.$file);
 						$rows = json_decode(json_encode((array) $sheet->sheetData), true);
+						if (empty($rows['row'])) continue;
 						$rows = $rows['row'];
 						
 						for ($i = 0, $l = sizeof($rows); $i < $l; $i++) {
@@ -1564,6 +1585,8 @@ class Xlsx
 							$attr = $row['@attributes'];
 							$r = (string) $attr['r'];
 							$data[$list][$r] = array();
+							if (empty($row['c'])) continue;
+							$cells = isset($row['c'])?$row['c']:[];
 							$cells = $row['c'];
 							
 							foreach ($cells as $cell) {
@@ -1574,8 +1597,10 @@ class Xlsx
 								if ($attr['t'] == 's') {
 									$place = (integer) $cell['v'];
 									$value = $contents[$place];
+									if (is_array($value)) $value = '';
 								} else if ($attr['t'] == 'str') {
-									$value = (string) $cell['v'];
+									if (is_array($cell['v'])) $value = '';
+									else $value = (string) $cell['v'];
 								} else {
 									$value = $cell['v'];
 									$value = (double) $value;
