@@ -864,6 +864,10 @@ class Xlsx
 				$all[$title]['prevgroup']['miss'] = true;
 			// Непонятно почему нельзя объединять дочернюю группу с родителем
 			//	if (!Each::isEqual($gr, $all[$title]['parent'])) {
+					if ($gr['type'] == 'book' && $gr['miss']) {
+						//Группа одноимённая с именем файла, не должна удаляться
+						$gr['miss'] = false;
+					}
 					xls_merge($gr, $all[$title]['prevgroup']); //Переносим данные
 
 					$all[$title]['prevgroup']['childs'] = array();
@@ -1391,16 +1395,20 @@ class Xlsx
 		if (!$back) {
 			$r = &$callback($data, $ii, $group);
 			if (!is_null($r)) return $r;
-			for ($i = 0; $i < sizeof($data['childs']); $i++) {
-				$r = &Xlsx::runGroups($data['childs'][$i], $callback, $back, $i, $data);
-				if (!is_null($r)) return $r;
+			if (!empty($data['childs'])) {
+				for ($i = 0; $i < sizeof($data['childs']); $i++) {
+					$r = &Xlsx::runGroups($data['childs'][$i], $callback, $back, $i, $data);
+					if (!is_null($r)) return $r;
+				}
 			}
 		}
 
 		if ($back) {
-			for ($k = sizeof($data['childs']) - 1; $k >= 0; $k--) { 
-				$r = &Xlsx::runGroups($data['childs'][$k], $callback, $back, $k, $data);
-				if (!is_null($r)) return $r;
+			if (!empty($data['childs'])) {
+				for ($k = sizeof($data['childs']) - 1; $k >= 0; $k--) { 
+					$r = &Xlsx::runGroups($data['childs'][$k], $callback, $back, $k, $data);
+					if (!is_null($r)) return $r;
+				}
 			}
 			$r = &$callback($data, $ii, $group);
 			if (!is_null($r)) return $r;
