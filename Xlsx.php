@@ -1575,7 +1575,7 @@ class Xlsx
 					}
 					closedir($handle);
 					natsort($files);
-					echo '<pre>';
+					
 					foreach ($files as $file) {
 						$src = $cacheFolder.'xl/worksheets/'.$file;
 
