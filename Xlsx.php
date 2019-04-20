@@ -838,6 +838,7 @@ function &xls_init($path, $config = array())
 		$in = Load::srcInfo($path);
 		if ($in['name'][0] == '~') return $r;
 		$d = &xls_make($path);
+		
 		$list[] = &$d;
 		return $r;
 	});
@@ -923,12 +924,11 @@ class Xlsx
 	}
 	public static function &initData($ar, $config = array()) {
 		if (empty($config['root'])) $config['root'] = 'Каталог';
-
 		$parent = false;
 		$data = _xls_createGroup($config['root'], $parent, 'set');//Сделали группу в которую объединяются все остальные
 		$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
 
-
+		
 
 		Each::forr($ar, function &(&$d) use (&$data) {
 			$r = null;
@@ -1575,6 +1575,7 @@ class Xlsx
 					}
 					closedir($handle);
 					natsort($files);
+					echo '<pre>';
 					foreach ($files as $file) {
 						$src = $cacheFolder.'xl/worksheets/'.$file;
 
@@ -1595,8 +1596,10 @@ class Xlsx
 							$data[$list][$r] = array();
 							if (empty($row['c'])) continue;
 							$cells = isset($row['c'])?$row['c']:[];
-							$cells = $row['c'];
-							
+							//$cells = $row['c'];
+
+							if (isset($cells['v'])) $cells = [$cells];
+									
 							foreach ($cells as $cell) {
 								if (!isset($cell['v'])) continue;
 								$attr = $cell['@attributes'];
@@ -1605,6 +1608,7 @@ class Xlsx
 								if ($attr['t'] == 's') {
 									$place = (integer) $cell['v'];
 									$value = $contents[$place];
+
 									if (is_array($value)) $value = '';
 								} else if ($attr['t'] == 'str') {
 									if (is_array($cell['v'])) $value = '';
@@ -1620,6 +1624,7 @@ class Xlsx
 								$syms[$c] = true;
 								$data[$list][$r][$c] = (string) $value;
 							}
+
 						}
 					}
 					$syms = array_keys($syms);
@@ -1654,6 +1659,7 @@ class Xlsx
 				//return "";
 				//собрать данные
 			}
+		
 			return $data;
 		}, array($path), ['akiyatkin\boo\Cache','getModifiedTime'], array($path));
 		return $data;
