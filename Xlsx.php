@@ -980,10 +980,12 @@ class Xlsx
 			xls_processClass($data, 'Производитель', true);
 		}//Должен быть обязательно miss раставляется
 
+		if ($config['Группы не уникальны']) {
+			
+		} else {
+			Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы	
+		}
 		
-		
-
-		Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы
 	
 
 		if (!isset($config['Игнорировать имена листов'])) $config['Игнорировать имена листов'] = false;
@@ -1004,7 +1006,18 @@ class Xlsx
 		Xlsx::processGroupMiss($data);//Группы miss(производители) расформировываются
 
 	//xls_processGroupCalculate($data);//Добавляются свойства count groups сколько позиций и групп группы должны быть уже определены... почищены...				
+		
 
+		if ($config['Группы не уникальны']) {
+			Xlsx::runGroups($data, function &(&$group, $i, $parent) {
+				$r = null;
+				if(!$parent) return $r;
+				$group['title'] .= '#'.$parent['title'];
+
+				
+				return $r;
+			});
+		}
 		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
 			
 			if (empty($gr['tparam'])) {
