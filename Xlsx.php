@@ -823,7 +823,6 @@ function &xls_init($path, $config = array())
 		}
 		$r = null; return $r;
 	});
-	
 	if (empty($config['root'])) {
 		if ($isonefile) {
 			$d = Load::srcInfo($isonefile);
@@ -842,7 +841,6 @@ function &xls_init($path, $config = array())
 		$list[] = &$d;
 		return $r;
 	});
-	
 	return Xlsx::initData($list, $config);
 };
 class Xlsx
@@ -928,16 +926,20 @@ class Xlsx
 		$data = _xls_createGroup($config['root'], $parent, 'set');//Сделали группу в которую объединяются все остальные
 		$data['miss'] = true;//Если в группе будет только одна подгруппа она удалится... подгруппа поднимится на уровень выше
 
-		
+		foreach ($ar as $i => $d) {
+			$data['childs'][] = $ar[$i];
+		}
 
-		Each::forr($ar, function &(&$d) use (&$data) {
+		/*Each::forr($ar, function &(&$d) use (&$data) {
 			$r = null;
 			if (!$d) return $r;
 			//$d['parent'] = &$data;
 			$data['childs'][] = &$d;
 			return $r;
 		});
-	
+		
+		unset($ar);*/
+
 		//Реверс записей на листе
 		if (!isset($config['listreverse'])) $config['listreverse'] = false;
 		if ($config['listreverse']) {
@@ -980,9 +982,7 @@ class Xlsx
 			xls_processClass($data, 'Производитель', true);
 		}//Должен быть обязательно miss раставляется
 
-		if ($config['Группы не уникальны']) {
-			
-		} else {
+		if ($config['Группы уникальны']) {
 			Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы	
 		}
 		
@@ -1008,11 +1008,15 @@ class Xlsx
 	//xls_processGroupCalculate($data);//Добавляются свойства count groups сколько позиций и групп группы должны быть уже определены... почищены...				
 		
 
-		if ($config['Группы не уникальны']) {
+		if (!$config['Группы уникальны']) {
 			Xlsx::runGroups($data, function &(&$group, $i, $parent) {
 				$r = null;
+				if (empty($group['name'])) { //depricated - только title
+					$group['name'] = $group['title'];
+				}
 				if(!$parent) return $r;
-				$group['title'] .= '#'.$parent['title'];
+				
+				$group['title'] .= '#'.$parent['name'];
 
 				
 				return $r;
