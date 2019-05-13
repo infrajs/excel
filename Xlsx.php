@@ -553,19 +553,22 @@ function xls_processClass(&$data, $clsname, $musthave = false)
 	$run = function (&$data, $run, $clsname, $musthave, $clsvalue = '') {
 		if ($data['type'] == 'book' && $musthave) {
 			$data['miss'] = true;
-			$clsvalue = Path::encode($data['title']);
+			//$clsvalue = Path::encode($data['title']);
+			$clsvalue = $data['title'];
 		} elseif ($data['type'] == 'list' && !empty($data['descr'][$clsname])) {
 			//Если в descr указан класс то имя листа игнорируется иначе это будет группой каталога, а классом будет считаться имя книги
 			$data['miss'] = true;//Если у листа есть позиции без группы он не расформировывается
-			$clsvalue = Path::encode($data['descr'][$clsname]);
+			//$clsvalue = Path::encode($data['descr'][$clsname]);
+			$clsvalue = $data['descr'][$clsname];
 		} elseif ($data['type'] == 'row' && !empty($data['descr'][$clsname])) {
-			$clsvalue = Path::encode($data['descr'][$clsname]);
+			//$clsvalue = Path::encode($data['descr'][$clsname]);
+			$clsvalue = $data['descr'][$clsname];
 		}
 		foreach ($data['data'] as $i => $pos) {
 			if (!isset($data['data'][$i][$clsname])) {
 				$data['data'][$i][$clsname] = $clsvalue;//У позиции будет установлен ближайший класс
 			} else {
-				$data['data'][$i][$clsname] = Path::encode($data['data'][$i][$clsname]);
+				//$data['data'][$i][$clsname] = Path::encode($data['data'][$i][$clsname]);
 			}
 			$r = null;
 		};	
@@ -841,6 +844,7 @@ function &xls_init($path, $config = array())
 		$list[] = &$d;
 		return $r;
 	});
+
 	return Xlsx::initData($list, $config);
 };
 class Xlsx
@@ -985,7 +989,7 @@ class Xlsx
 		if ($config['Группы уникальны']) {
 			Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы	
 		}
-		
+
 	
 
 		if (!isset($config['Игнорировать имена листов'])) $config['Игнорировать имена листов'] = false;
@@ -1044,8 +1048,6 @@ class Xlsx
 			$config['Подготовить для адреса'] = array('Артикул' => 'article','Производитель' => 'producer');
 		}
 		xls_processPossFS($data, $config['Подготовить для адреса']);//Заменяем левые символы в свойстве
-
-
 
 		if (empty($config['Обязательные колонки'])) {
 			$config['Обязательные колонки'] = array('article','producer');
