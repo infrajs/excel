@@ -1084,7 +1084,7 @@ class Xlsx
 		
 		Xlsx::prepareMetaGroup($data);
 		if (empty($config['Не идентифицирующие колонки'])) $config['Не идентифицирующие колонки'] = [];
-		}
+		
 		Xlsx::makeItems($data, $config['Не идентифицирующие колонки']);
 
 		return $data;
