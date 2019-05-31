@@ -49,6 +49,7 @@ $option = array(
 	'Ссылка parent' => false, //Нет ссылки
 	'group_title' => true,
 	'parent_title' => true,
+	'Не идентифицирующие колонки' => array(),
 	'root' => 'Каталог',
 	'Игнорировать имена листов' => false
 	'Обязательные колонки' => array('article','producer'),

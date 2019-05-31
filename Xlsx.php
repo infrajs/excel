@@ -1083,14 +1083,15 @@ class Xlsx
 		}
 		
 		Xlsx::prepareMetaGroup($data);
-		
-		Xlsx::makeItems($data);
+		if (empty($config['Не идентифицирующие колонки'])) $config['Не идентифицирующие колонки'] = [];
+		}
+		Xlsx::makeItems($data, $config['Не идентифицирующие колонки']);
 
 		return $data;
 	}
-	public static function makeItems(&$data) {
+	public static function makeItems(&$data, $confmiss = []) {
 		$poss = array();
-		Xlsx::runPoss($data, function (&$pos, $i, &$group) use (&$poss) {
+		Xlsx::runPoss($data, function (&$pos, $i, &$group) use (&$poss, $confmiss) {
 			$prodart = mb_strtolower($pos['producer'].' '.$pos['article']);
 			if (!isset($poss[$prodart])) {
 				$pos['id'] = '';
@@ -1098,6 +1099,7 @@ class Xlsx
 				$r = null; return $r;
 			}
 			$miss = ['group','gid','Группа','path','more','Артикул','article','producer','Производитель'];
+			$miss = array_merge($confmiss, $miss);
 			//Нашли повтор
 			unset($group['data'][$i]);
 			$row = array();
