@@ -547,14 +547,18 @@ function xls_processClassEmpty(&$data, $clsname)
 		$r = null; return $r;
 	});
 }
-function xls_processClass(&$data, $clsname, $musthave = false)
+function xls_processClass(&$data, $clsname, $musthave = false, $def = false)
 {
 
-	$run = function (&$data, $run, $clsname, $musthave, $clsvalue = '') {
+	$run = function (&$data, $run, $clsname, $musthave, $clsvalue = '') use ($def) {
 		if ($data['type'] == 'book' && $musthave) {
 			$data['miss'] = true;
 			//$clsvalue = Path::encode($data['title']);
-			$clsvalue = $data['title'];
+			if ($def) {
+				$clsvalue = $def;
+			} else {
+				$clsvalue = $data['title'];
+			}
 		} elseif ($data['type'] == 'list' && !empty($data['descr'][$clsname])) {
 			//Если в descr указан класс то имя листа игнорируется иначе это будет группой каталога, а классом будет считаться имя книги
 			$data['miss'] = true;//Если у листа есть позиции без группы он не расформировывается
@@ -960,11 +964,12 @@ class Xlsx
 		
 		xls_processPoss($data, $config['Сохранить head']);
 		
-		if (!isset($config['Переименовать колонки'])) $config['Переименовать колонки'] = array();	
+		if (!isset($config['Переименовать колонки'])) $config['Переименовать колонки'] = array();
 		if (!isset($config['Удалить колонки'])) $config['Удалить колонки'] = array();
 		if (!isset($config['more'])) $config['more'] = false;
 		
-		
+	
+
 		xls_runPoss($data, function &(&$pos) use (&$config) {
 			$r = null;
 			foreach ($config['Удалить колонки'] as $k) {
@@ -981,11 +986,18 @@ class Xlsx
 
 		if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
 
+		
+		if (!isset($config['Игнорировать имена файлов'])) $config['Игнорировать имена файлов'] = false;
+		if (!isset($config['Производитель по умолчанию'])) $config['Производитель по умолчанию'] = false;
 
-		if ($config['Имя файла'] == 'Производитель') {
-			xls_processClass($data, 'Производитель', true);
-		}//Должен быть обязательно miss раставляется
-
+		if ($config['Игнорировать имена файлов']) {
+			xls_processClass($data, 'Производитель', true, $config['Производитель по умолчанию']);
+		} else {
+			if ($config['Имя файла'] == 'Производитель') {
+				xls_processClass($data, 'Производитель', true);
+			}//Должен быть обязательно miss раставляется	
+		}
+		
 		if ($config['Группы уникальны']) {
 			Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы	
 		}
@@ -1091,6 +1103,7 @@ class Xlsx
 	}
 	public static function makeItems(&$data, $confmiss = []) {
 		$poss = array();
+		
 		Xlsx::runPoss($data, function (&$pos, $i, &$group) use (&$poss, $confmiss) {
 			$prodart = mb_strtolower($pos['producer'].' '.$pos['article']);
 			if (!isset($poss[$prodart])) {
