@@ -1096,9 +1096,9 @@ class Xlsx
 		
 		Xlsx::prepareMetaGroup($data);
 		if (empty($config['Не идентифицирующие колонки'])) $config['Не идентифицирующие колонки'] = [];
-		
-		Xlsx::makeItems($data, $config['Не идентифицирующие колонки']);
 
+		Xlsx::makeItems($data, $config['Не идентифицирующие колонки']); //Колонки не попадают в item
+	
 		return $data;
 	}
 	public static function makeItems(&$data, $confmiss = []) {
@@ -1112,7 +1112,9 @@ class Xlsx
 				$r = null; return $r;
 			}
 			$miss = ['group','gid','Группа','path','more','Артикул','article','producer','Производитель'];
+			
 			$miss = array_merge($confmiss, $miss);
+			//Model::$propmoredescr = $miss;
 			//Нашли повтор
 			unset($group['data'][$i]);
 			$row = array();
@@ -1139,10 +1141,13 @@ class Xlsx
 					}	
 				}
 			}
+
 			$head = array_keys($row);
 			if ($row) {
+
 				if (!isset($poss[$prodart]['items'])) {
 					$poss[$prodart]['items'] = array();
+
 					if (isset($row['more'])) {
 						$poss[$prodart]['itemrows'] = array_merge($row, $row['more']);
 						unset($poss[$prodart]['itemrows']['more']);
@@ -1182,20 +1187,25 @@ class Xlsx
 					$poss[$prodart]['items'][] = $row;
 				}
 			}
+
 			$r = null; return $r;
 		});
-
+		
 		foreach ($poss as $i => $p) {
 			//unset($poss[$i]['itemrows']);
 			$ids = [];
 			if (isset($poss[$i]['items'])) {
+			
 				$poss[$i]['itemrows'] = array_fill_keys(array_keys($poss[$i]['itemrows']), 1);
+
 				$poss[$i]['id'] = Model::getId($poss[$i]);
+				$ids = array($poss[$i]['id']=>true);
 				foreach ($poss[$i]['items'] as $t=>$tval) {
 					$id = Model::getId($poss[$i], $tval);
 					if (isset($ids[$id])) {
-						unset($poss[$i]['items'][$t]);
-						continue;
+						$id = $id.$t;
+						//unset($poss[$i]['items'][$t]);
+						//continue;
 					}
 					$ids[$id] = true;
 					$poss[$i]['items'][$t]['id'] = $id;
@@ -1204,7 +1214,7 @@ class Xlsx
 					}
 				}
 				$poss[$i]['items'] = array_values($poss[$i]['items']);
-				if (sizeof($poss[$i]['items']) == 1) unset($poss[$i]['items']);
+				if (sizeof($poss[$i]['items']) == 0) unset($poss[$i]['items']);
 				
 			}
 		}
