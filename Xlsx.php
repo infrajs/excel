@@ -85,7 +85,7 @@ function &xls_make($path, $title = false)
 	} else {
 		$datamain = $path;
 	}
-
+	
 
 	$parent = false;
 
@@ -258,8 +258,8 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 			}
 		}
 	}
-	$title = preg_replace('/["+\']/', ' ', $title);
-	$title = preg_replace('/[\\/\\\\]/', '', $title);
+	//$title = preg_replace('/["+\']/', ' ', $title);
+	//$title = preg_replace('/[\\/\\\\]/', '', $title);
 	$title = preg_replace('/^\s+/', '', $title);
 	$title = preg_replace('/\s+$/', '', $title);
 	$title = preg_replace('/\s+/', ' ', $title);
@@ -848,7 +848,7 @@ function &xls_init($path, $config = array())
 		$list[] = &$d;
 		return $r;
 	});
-
+	
 	return Xlsx::initData($list, $config);
 };
 class Xlsx
