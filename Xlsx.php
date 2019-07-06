@@ -1630,10 +1630,11 @@ class Xlsx
 
 						$sheet = simplexml_load_file($cacheFolder.'xl/worksheets/'.$file);
 						$rows = json_decode(json_encode((array) $sheet->sheetData), true);
-						if (empty($rows['row'])) continue;
+						if (empty($rows['row']) || empty($rows['row'][0])) continue;
 						$rows = $rows['row'];
 						
 						for ($i = 0, $l = sizeof($rows); $i < $l; $i++) {
+							
 							$row = $rows[$i];
 							$attr = $row['@attributes'];
 							$r = (string) $attr['r'];
