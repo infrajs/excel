@@ -447,7 +447,7 @@ function xls_merge(&$gr, &$addgr)
 	//if ($gr['pitch'] < $addgr['pitch'] && Xlsx::isParent($addgr, $gr)) {
 	$gr['merged'] = true;
 	//$gr['type'] = $addgr['type'];
-	$gr['childs'] = array_merge($addgr['childs'], $gr['childs']);
+	$gr['childs'] = array_merge($gr['childs'], $addgr['childs']);
 	$gr['data'] = array_merge($gr['data'], $addgr['data']);
 	//} else {
 	//	$gr['childs'] = array_merge($gr['childs'], $addgr['childs']);
@@ -984,6 +984,8 @@ class Xlsx
 			}
 			return $r;
 		});
+
+
 
 		if (!isset($config['Имя файла'])) $config['Имя файла'] = 'Производитель'; //Группа остаётся, а производитель попадает в описание каждой позиции
 
