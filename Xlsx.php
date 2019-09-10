@@ -446,6 +446,7 @@ function xls_merge(&$gr, &$addgr)
 	//$gr['miss']=0;
 	//if ($gr['pitch'] < $addgr['pitch'] && Xlsx::isParent($addgr, $gr)) {
 	$gr['merged'] = true;
+	//$gr['type'] = $addgr['type'];
 	$gr['childs'] = array_merge($addgr['childs'], $gr['childs']);
 	$gr['data'] = array_merge($gr['data'], $addgr['data']);
 	//} else {
@@ -997,12 +998,6 @@ class Xlsx
 				xls_processClass($data, 'Производитель', true);
 			}//Должен быть обязательно miss раставляется	
 		}
-		
-		if ($config['Группы уникальны']) {
-			Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы	
-		}
-
-	
 
 		if (!isset($config['Игнорировать имена листов'])) $config['Игнорировать имена листов'] = false;
 		if ($config['Игнорировать имена листов']) {
@@ -1010,11 +1005,20 @@ class Xlsx
 			Xlsx::runGroups($data, function &(&$group){
 				if ($group['type'] == 'list' && empty($group['merged'])) {
 					$group['miss'] = true;
+					$group['title'] = 'miss '.$group['title']; //Чтобы группы не объединялись с удаляемым листом
 				}
 				$r = null;
 				return $r;
 			});
 		}
+
+		if ($config['Группы уникальны']) {
+			Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы	
+		}
+
+	
+
+		
 
 		
 		
