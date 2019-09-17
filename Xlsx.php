@@ -1014,7 +1014,7 @@ class Xlsx
 			});
 		}
 
-		if ($config['Группы уникальны']) {
+		if(!empty($config['Группы уникальны'])) {
 			Xlsx::processGroupFilter($data);//Объединяются группы с одинаковым именем, Удаляются пустые группы	
 		}
 
@@ -1030,7 +1030,7 @@ class Xlsx
 	//xls_processGroupCalculate($data);//Добавляются свойства count groups сколько позиций и групп группы должны быть уже определены... почищены...				
 		
 
-		if (!$config['Группы уникальны']) {
+		if(empty($config['Группы уникальны'])) {
 			Xlsx::runGroups($data, function &(&$group, $i, $parent) {
 				$r = null;
 				if (empty($group['name'])) { //depricated - только title
