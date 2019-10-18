@@ -1586,12 +1586,17 @@ class Xlsx
 					$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
 					$contents = json_decode(json_encode((array) $contents), true);
 					$contents = $contents['si'];
-
+					
 					for ($i = 0, $l =sizeof($contents); $i < $l; $i++) {
 
 						if (isset($contents[$i]['r'])) {
 							$value = '';
+
+							//То массив, то не массив. Делаем всегда массивом
+							//if (!is_array($contents[$i]['r'])) $contents[$i]['r'] = ['t'=>$contents[$i]['r']];
+
 							foreach ($contents[$i]['r'] as $con) {
+								if (!is_array($con)) $con = ['t'=>$con];
 								if (isset($con['t']) && !is_array($con['t'])) {
 									$value .= $con['t'];
 								}
@@ -1602,7 +1607,6 @@ class Xlsx
 						$contents[$i] = $value;
 					}
 					
-
 					$workbook = simplexml_load_file($cacheFolder.'xl/workbook.xml');
 					$sheets = $workbook->sheets->sheet;
 					
@@ -1625,7 +1629,7 @@ class Xlsx
 					}
 					closedir($handle);
 					natsort($files);
-					
+				
 					foreach ($files as $file) {
 						$src = $cacheFolder.'xl/worksheets/'.$file;
 
@@ -1638,7 +1642,7 @@ class Xlsx
 						$rows = json_decode(json_encode((array) $sheet->sheetData), true);
 						if (empty($rows['row']) || empty($rows['row'][0])) continue;
 						$rows = $rows['row'];
-						
+							
 						for ($i = 0, $l = sizeof($rows); $i < $l; $i++) {
 							
 							$row = $rows[$i];
