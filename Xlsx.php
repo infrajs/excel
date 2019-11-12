@@ -121,9 +121,9 @@ function &xls_make($path, $title = false)
 
 			if (!$head) {
 				foreach ($row as $b => $rowcell) {
-					$row[$b] = preg_replace('/\n/', '', $row[$b]);
-					$row[$b] = preg_replace('/\s+$/', '', $row[$b]);
-					$row[$b] = preg_replace('/^\s+/', '', $row[$b]);
+					$row[$b] = preg_replace('/\n/u', '', $row[$b]);
+					$row[$b] = preg_replace('/\s+$/u', '', $row[$b]);
+					$row[$b] = preg_replace('/^\s+/u', '', $row[$b]);
 				}
 				$head = ($count > 2);//Больше 2х не пустых ячеек будет заголовком
 				foreach ($row as $first_index => $first_value) {
@@ -260,9 +260,9 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 	}
 	//$title = preg_replace('/["+\']/', ' ', $title);
 	//$title = preg_replace('/[\\/\\\\]/', '', $title);
-	$title = preg_replace('/^\s+/', '', $title);
-	$title = preg_replace('/\s+$/', '', $title);
-	$title = preg_replace('/\s+/', ' ', $title);
+	$title = preg_replace('/^\s+/u', '', $title);
+	$title = preg_replace('/\s+$/u', '', $title);
+	$title = preg_replace('/\s+/u', ' ', $title);
 
 
 	if ($type == 'set') $pitch = 0;
