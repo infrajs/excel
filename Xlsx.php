@@ -1036,11 +1036,8 @@ class Xlsx
 				if (empty($group['name'])) { //depricated - только title
 					$group['name'] = $group['title'];
 				}
-				if(!$parent) return $r;
-				
+				if (!$parent || !$parent['pitch']) return $r;
 				$group['title'] .= '#'.$parent['name'];
-
-				
 				return $r;
 			});
 		}
