@@ -1043,7 +1043,7 @@ class Xlsx
 		}
 		Xlsx::runGroups($data, function &(&$gr, $i, &$parent) {
 			
-			if (empty($gr['tparam'])) {
+			if (empty($gr['tparam']) && isset($parent['tparam'])) {
 				$gr['tparam'] = $parent['tparam'];
 			}//tparam наследуется Оборудование:что-то, что-то
 
