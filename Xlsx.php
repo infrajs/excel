@@ -94,7 +94,7 @@ function &xls_make($path, $title = false)
 	foreach ($datamain as $title => $data) {
 		if (!$data) continue;
 		//Бежим по листам
-		if ($title{0} === '.') continue; //Не применяем лист у которого точка в начале имени
+		if ($title[0] === '.') continue; //Не применяем лист у которого точка в начале имени
 		$argr = array();//Чтобы была возможность определить следующую группу и при этом работать со ссылкой и не переопределять предыдущую
 		$argr[0] = &_xls_createGroup($title, $groups, 'list');
 		if (!$argr[0]) continue;
@@ -217,7 +217,7 @@ function &_xls_createGroup($title, &$parent, $type, &$row = false)
 	$tparam = '';
 	$descr = array();
 	$miss = false;
-	if ($title{0} == '.') $miss = true;
+	if ($title[0] == '.') $miss = true;
 	$t = explode(':', $title);
 	if (!$t[0] && $parent) {
 		//Когда начинается с двоеточия
@@ -314,13 +314,13 @@ function xls_processPoss(&$data, $ishead = false)
 				if (empty($head[$k])) continue;
 				$propname = $head[$k];
 				
-				if ($propname{0} == '.') {
+				if ($propname[0] == '.') {
 					continue;
 				}//Колонки с точкой скрыты
 				if ($propvalue == '') {
 					continue;
 				}
-				if ($propvalue{0} == '.') {
+				if ($propvalue[0] == '.') {
 					return $r;
 				}//Позиции у которых параметры начинаются с точки скрыты
 
@@ -750,7 +750,7 @@ function xls_preparePosFiles(&$pos, $pth, $props = array())
 		$name=$p['basename'];
 		$ext=strtolower($p['extension']);*/
 		
-		if ($name{0} == '.') return;
+		if ($name[0] == '.') return;
 		$dir=Path::pretty($dir);
 		$name = Path::toutf($dir.$name);
 		
@@ -820,7 +820,7 @@ function &xls_init($path, $config = array())
 			Cache::addCond(['akiyatkin\\boo\\Cache','getModifiedTime'],[$path]);
 
 			array_map(function ($file) use (&$ar, $p, $path) {
-				if ($file{0}=='.') {
+				if ($file[0]=='.') {
 					return;
 				}
 				$fd = Load::nameInfo($file);
@@ -1615,7 +1615,7 @@ class Xlsx
 					$syms = array();
 					$files = array();
 					while ($file = readdir($handle)) {
-						if ($file{0} == '.') {
+						if ($file[0] == '.') {
 							continue;
 						}
 						$src = $cacheFolder.'xl/worksheets/'.$file;
@@ -1747,7 +1747,7 @@ class Xlsx
 				$r = null;
 				//Cache::addCond(['akiyatkin\\boo\\Cache','getModifiedTime'],[$src]);
 				if (!Path::theme($src.Path::toutf($name))) return $r;
-				if ($name{0} == '.') return $r;
+				if ($name[0] == '.') return $r;
 				$path = $src.Path::toutf($name);
 				
 				
