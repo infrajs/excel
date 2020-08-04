@@ -9,8 +9,8 @@ use infrajs\cache\Cache as OldCache;
 use infrajs\once\Once;
 use infrajs\config\Config;
 use akiyatkin\boo\Cache;
-use akiyatkin\boo\MemCache;
 use infrajs\sequence\Sequence;
+use infrajs\mem\Mem;
 use akiyatkin\dabudi\Model;
 /*
 * xls методы для работы с xls документами. 
@@ -852,6 +852,20 @@ function &xls_init($path, $config = array())
 	
 	return Xlsx::initData($list, $config);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class Xlsx
 {
 	/**
@@ -1491,21 +1505,17 @@ class Xlsx
 	{
 		return xls_make($path, $title);
 	}
+	//public static $cache = array();
 	public static function &parseAll($path)
-	{
-		$data = Cache::exec('Разбор табличных данных', function &($path) {
+	{		
+		//$key = 'all'.json_encode($args, JSON_UNESCAPED_UNICODE);
+		//if (isset(Xlsx::$cache[$key])) return Xlsx::$cache[$key];
 
-			$file = Path::theme($path);
-
-			
-			$data = array();
-			if (!$file) {
-				return $data;
-			}
-
+		$file = Path::theme($path);
+		$data = array();
+		if (!$file) return $data;
+		OldCache::exec([$path], 'parseAll', function ($path) {
 			$in = Load::srcInfo($path);
-
-			Cache::setTitle($path);
 			if ($in['ext'] == 'xls') {
 				require_once __DIR__.'/excel_parser/oleread.php';
 				require_once __DIR__.'/excel_parser/reader.php';
@@ -1575,9 +1585,9 @@ class Xlsx
 				if ($r===true) {
 					$zip->extractTo($zipcacheFolder);
 					$zip->close();
- 					if (!is_file($cacheFolder.'xl/sharedStrings.xml')) {
- 						return $data;
- 					}
+					if (!is_file($cacheFolder.'xl/sharedStrings.xml')) {
+						return $data;
+					}
 
 					//6.74
 					$contents = simplexml_load_file($cacheFolder.'xl/sharedStrings.xml');
@@ -1711,10 +1721,11 @@ class Xlsx
 				//return "";
 				//собрать данные
 			}
-		
+
 			return $data;
-		}, array($path), ['akiyatkin\boo\Cache','getModifiedTime'], array($path));
-		return $data;
+		}, [$path]);
+		
+		
 	}
 	public static function getFiles($src) {
 		//return Once::func( function ($src){
