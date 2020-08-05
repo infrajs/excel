@@ -6,10 +6,9 @@ use infrajs\path\Path;
 use infrajs\load\Load;
 use infrajs\each\Each;
 use infrajs\each\Fix;
-use infrajs\cache\Cache as OldCache;
+use infrajs\cache\Cache;
 use infrajs\once\Once;
 use infrajs\config\Config;
-use akiyatkin\boo\Cache;
 use infrajs\sequence\Sequence;
 use infrajs\mem\Mem;
 use akiyatkin\dabudi\Model;
@@ -71,7 +70,6 @@ function &xls_parse($path, $list = false)
 
 function &xls_make($path, $title = false)
 {
-
 	if (is_string($path)) {
 		$datamain = xls_parseAll($path);
 		if (!$title) {
@@ -86,8 +84,7 @@ function &xls_make($path, $title = false)
 	} else {
 		$datamain = $path;
 	}
-
-
+	
 	$parent = false;
 
 	$groups = &_xls_createGroup($title, $parent, 'book');
@@ -1449,9 +1446,8 @@ class Xlsx
 	 **/
 	public static function &get($src, $title = false)
 	{
-
+		
 		$data = xls_make($src, $title);
-
 		xls_processDescr($data);
 
 		xls_processPoss($data, true);
@@ -1529,7 +1525,7 @@ class Xlsx
 	}
 	public static function &parseAll($path)
 	{
-		$data = OldCache::exec([$path], 'parseAll', function ($path) {
+		$data = Cache::exec([$path], 'Xlsx::parseAll', function ($path) {
 			
 			$in = Load::srcInfo($path);
 			$data = array();
@@ -1573,7 +1569,7 @@ class Xlsx
 				$cacheFolder = Path::resolve(Xlsx::$conf['cache']);
 				//$cacheFolder .= Path::encode($path).'/';//кэш			
 				$cacheFolder .= md5($path) . '/'; //кэш			
-				OldCache::fullrmdir($cacheFolder, true); //удалить старый кэш
+				Cache::fullrmdir($cacheFolder, true); //удалить старый кэш
 
 				$r = mkdir($cacheFolder);
 				if (!$r) {
