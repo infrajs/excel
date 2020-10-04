@@ -1593,7 +1593,9 @@ class Xlsx
 					$zipcacheFolder = Path::tofs($cacheFolder); //Без кирилицы
 					$archiveFile = Path::tofs($pathfs);
 				}
-				$r = $zip->open($archiveFile);
+				
+				if (!$archiveFile) $r = false;
+				else $r = $zip->open($archiveFile);
 				if ($r === true) {
 					$zip->extractTo($zipcacheFolder);
 					$zip->close();
