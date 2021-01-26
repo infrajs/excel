@@ -591,14 +591,14 @@ function xls_processClass(&$data, $clsname, $musthave = false, $def = false)
 
 function _xls_sort($a, $b)
 {
-	return ($a < $b) ? -1 : ($a > $b) ? 1 : 0;
+	return ($a < $b) ? -1 : (($a > $b) ? 1 : 0);
 }
 function _xls_sortName($a, $b)
 {
 	$a = $a['Наименование'];
 	$b = $b['Наименование'];
 
-	return ($a < $b) ? -1 : ($a > $b) ? 1 : 0;
+	return ($a < $b) ? -1 : (($a > $b) ? 1 : 0);
 }
 function xls_pageList(&$poss, $page, $count, $sort, $numbers)
 {
