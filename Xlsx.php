@@ -319,7 +319,7 @@ function xls_processPoss(&$data, $ishead = false)
 				if ($propvalue == '') {
 					continue;
 				}
-				if ($propvalue[0] == '.') {
+				if (is_string($propvalue) && $propvalue[0] == '.') {
 					return $r;
 				} //Позиции у которых параметры начинаются с точки скрыты
 
