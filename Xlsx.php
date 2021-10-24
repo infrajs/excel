@@ -1517,7 +1517,7 @@ class Xlsx
 	 */
 	public static function parse($src, $list = false)
 	{
-		return xls_parse($src);
+		return xls_parse($src, $list);
 	}
 	public static function make($path, $title = false)
 	{
